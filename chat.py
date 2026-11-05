@@ -20,10 +20,12 @@ Usage :
     python chat.py                                      # mode interactif
 """
 import argparse
+import os
 from functools import lru_cache
 from pathlib import Path
 
-MODEL_PATH = Path(__file__).parent / "models" / "SmolLM2-135M-Instruct-Q4_0.gguf"
+MODELS = Path(__file__).parent / "models"
+MODEL_PATH = Path(os.environ.get("ALICE_MODEL", MODELS / "SmolLM2-135M-Instruct-Q4_0.gguf"))
 
 # Réglages de génération retenus après évaluation (voir eval/eval_fr.py).
 GEN = dict(temperature=0, repeat_penalty=1.15)
@@ -64,8 +66,8 @@ SHOTS_DIRECT = [
 ]
 
 
-def answer_direct(question):
-    return _chat(_few_shot(SYS_DIRECT, SHOTS_DIRECT, question))
+def answer_direct(question, shots=True):
+    return _chat(_few_shot(SYS_DIRECT, SHOTS_DIRECT if shots else [], question))
 
 
 # ---------------------------------------------------------------- mode pivot

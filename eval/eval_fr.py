@@ -2,6 +2,8 @@
 
     python eval/eval_fr.py                 # compare les trois modes
     python eval/eval_fr.py --verbose       # affiche chaque réponse
+    python eval/eval_fr.py --set heldout   # 32 questions jamais vues à l'entraînement
+    ALICE_MODEL=models/autre.gguf python eval/eval_fr.py   # un autre modèle
 
 Mesures :
 - correct  : la réponse contient la bonne réponse attendue (contrôle automatique, assez indulgent) ;
@@ -18,7 +20,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import chat  # noqa: E402
-from questions_fr import CASES  # noqa: E402
+from questions_fr import CASES, CASES_HELDOUT  # noqa: E402
 
 FR_WORDS = set("le la les un une des est et de du que qui il elle je tu nous vous ils en au aux pour pas sont avec dans sur ce cette a y ne plus".split())
 EN_WORDS = set("the is are and of to in that it you for with this was be on as have not".split())
@@ -34,6 +36,7 @@ def baseline(question):
 MODES = {
     "origine": baseline,
     "direct": lambda q: chat.ask(q, "direct"),
+    "direct0": lambda q: chat.answer_direct(q, shots=False),
     "pivot": lambda q: chat.ask(q, "pivot"),
 }
 
@@ -61,14 +64,18 @@ def loops(text):
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--modes", default="origine,direct,pivot")
+    ap.add_argument("--set", choices=["eval", "heldout"], default="eval",
+                    help="eval : les 30 questions d'origine ; heldout : 32 questions jamais vues à l'entraînement")
     ap.add_argument("--verbose", action="store_true")
     args = ap.parse_args()
-    n = len(CASES)
+    cases = CASES if args.set == "eval" else CASES_HELDOUT
+    n = len(cases)
+    print(f"modèle : {chat.MODEL_PATH.name}, série : {args.set}")
     for name in args.modes.split(","):
         fn = MODES[name]
         ok = fr = lp = 0
         t0 = time.time()
-        for q, answers, _cat in CASES:
+        for q, answers, _cat in cases:
             a = fn(q)
             c, f, l = is_correct(a, answers), is_french(a), loops(a)
             ok += c; fr += f; lp += l
