@@ -45,14 +45,17 @@ python chat.py                                          # mode interactif
 Les réglages `/mode` et `/debug` de chaque conversation sont stockés dans la table
 `user_settings` du projet Supabase **alice** : ils restent en place quand le bot redémarre.
 
-1. Dans Supabase : projet **alice** → *Project Settings* → *API Keys* → copie une
-   **clé secrète** (`sb_secret_...`).
-2. Copie `.env.example` en `.env` et remplis `TELEGRAM_BOT_TOKEN` et `SUPABASE_SECRET_KEY`
-   (`.env` est ignoré par git). Le bot charge ce fichier tout seul.
+Copie `.env.example` en `.env` et remplis `TELEGRAM_BOT_TOKEN` et `SUPABASE_BOT_SECRET`
+(`.env` est ignoré par git ; le bot charge ce fichier tout seul).
 
-La table a la sécurité RLS activée sans politique : seule la clé secrète y a accès, la
-clé publique est refusée. Ne partage jamais la clé secrète. Sans ces variables, le bot
-fonctionne quand même, avec des réglages en mémoire.
+Sécurité : la table n'est pas accessible avec la clé publique. Le bot passe par deux
+fonctions (`get_user_settings`, `set_user_settings`) qui refusent tout appel sans le bon
+`SUPABASE_BOT_SECRET` ; la base n'en garde que l'empreinte SHA-256. Ne partage pas ce
+secret. Sans ces variables, le bot fonctionne quand même, avec des réglages en mémoire.
+
+Pour changer le secret : génère-en un nouveau, puis mets à jour son empreinte avec
+`update private.bot_secrets set secret_sha256 = encode(sha256(convert_to('NOUVEAU_SECRET', 'UTF8')), 'hex') where name = 'telegram_bot';`
+dans l'éditeur SQL de Supabase.
 
 Commandes du bot : `/mode pivot` (par défaut, plus exact), `/mode direct` (plus rapide),
 `/debug` (affiche les étapes en anglais). Le bot ne tourne que tant que `python bot.py`

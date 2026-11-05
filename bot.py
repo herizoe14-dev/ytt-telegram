@@ -7,9 +7,10 @@
        python bot.py
 3. Écris à ton bot sur Telegram.
 
-Réglages persistants (facultatif) : définis aussi SUPABASE_URL et
-SUPABASE_SECRET_KEY pour que /mode et /debug soient conservés dans Supabase
-(voir settings.py). Sans elles, les réglages restent en mémoire.
+Réglages persistants (facultatif) : définis aussi SUPABASE_URL,
+SUPABASE_PUBLISHABLE_KEY et SUPABASE_BOT_SECRET pour que /mode et /debug
+soient conservés dans Supabase (voir settings.py et .env.example).
+Sans elles, les réglages restent en mémoire.
 
 Commandes :
     /start          présentation
@@ -115,7 +116,7 @@ async def post_init(app):
         await store.check()
         log.info("Réglages enregistrés dans Supabase.")
     else:
-        log.warning("SUPABASE_URL / SUPABASE_SECRET_KEY absents : réglages en mémoire seulement.")
+        log.warning("Variables SUPABASE_* absentes : réglages en mémoire seulement.")
 
 
 async def post_shutdown(app):
