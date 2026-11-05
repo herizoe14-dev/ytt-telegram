@@ -117,3 +117,18 @@ CASES_NIVEAUX = [
     ("Léa a 2 fois plus de billes que Max. Max a 6 billes. Combien de billes ont-ils ensemble ?", ["18"], "5 - complexe"),
     ("Un fermier a 3 vaches et 4 poules. Combien de pattes y a-t-il en tout ?", ["20"], "5 - complexe"),
 ]
+
+# Contrôle de généralisation : mêmes compétences que les niveaux 3 à 5, mais formulées
+# autrement que les gabarits d'entraînement (écrites avant l'entraînement v4).
+CASES_NIVEAUX2 = [
+    ("Sophie avait 16 perles. Elle en a offert la moitié à son amie. Combien de perles a-t-elle encore ?", ["8"], "moitié"),
+    ("Max possède 7 voitures miniatures. Son cousin en possède trois fois plus. Combien de voitures a son cousin ?", ["21"], "fois plus"),
+    ("Dans un parking, il y a 2 voitures et 3 vélos. Combien de roues y a-t-il ?", ["14"], "connaissance + calcul"),
+    ("Le bus part à 8 heures. Il roule 2 heures, puis fait une pause d'une heure. À quelle heure repart-il ?", ["11"], "heures"),
+    ("Lina a 20 euros. Elle achète un cahier à 4 euros, un stylo à 2 euros et une gomme à 1 euro. Combien lui reste-t-il ?", ["13"], "trois étapes"),
+    ("J'ai 5 paquets de 3 biscuits. J'en mange 4. Combien de biscuits me reste-t-il ?", ["11"], "deux étapes"),
+    ("Rémi a 4 ans de moins que Clara. Clara a 13 ans. Quel âge aura Rémi dans 3 ans ?", ["12"], "âges"),
+    ("Un panier contient 18 œufs. On en utilise le tiers pour un gâteau. Combien d'œufs reste-t-il ?", ["12"], "tiers"),
+    ("Tim a 10 billes. Il en gagne 6, en perd 4, puis en gagne encore 2. Combien de billes a-t-il ?", ["14"], "trois étapes"),
+    ("Il y a 4 tables. Chaque table a 4 pieds. On enlève une table. Combien de pieds reste-t-il ?", ["12"], "deux étapes"),
+]

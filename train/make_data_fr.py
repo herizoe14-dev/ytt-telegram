@@ -16,7 +16,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "eval"))
-from questions_fr import CASES, CASES_HELDOUT, CASES_NIVEAUX, CASES_RAISONNEMENT  # noqa: E402
+from questions_fr import CASES, CASES_HELDOUT, CASES_NIVEAUX, CASES_NIVEAUX2, CASES_RAISONNEMENT  # noqa: E402
 
 rng = random.Random(0)
 OUT = []
@@ -47,7 +47,7 @@ def norm(s):
     return re.sub(r"\W+", " ", "".join(c for c in s if not unicodedata.combining(c))).strip()
 
 
-EVAL_QUESTIONS = {norm(q) for q, _, _ in CASES + CASES_HELDOUT + CASES_RAISONNEMENT + CASES_NIVEAUX}
+EVAL_QUESTIONS = {norm(q) for q, _, _ in CASES + CASES_HELDOUT + CASES_RAISONNEMENT + CASES_NIVEAUX + CASES_NIVEAUX2}
 
 # ------------------------------------------------------------------ capitales
 CAPITALS = [  # (complément « de … », capitale) — sans les pays de l'évaluation
@@ -716,6 +716,154 @@ for a in range(1, 11):
             add(f"Combien font {a} fois {b} ?", f"{a} fois {b} font {a * b}.")
             add(f"Calcule {a} × {b}.", f"{a} × {b} = {a * b}.")
 
+# ------------------------------------------------------------------ fractions et étapes (v4)
+FRAC = [("la moitié", 2), ("le tiers", 3), ("le quart", 4)]
+for _ in range(300):  # donner une fraction, éventuellement puis une autre étape
+    name, g = rng.choice(NAMES)
+    sing, plur, food = rng.choice(THINGS)
+    frac, d = rng.choice(FRAC[:1] * 3 + FRAC[1:])
+    part = rng.randint(1, 8)
+    total = part * d
+    rest = total - part
+    to = rng.choice(["à sa sœur", "à son frère", "à un ami", "à sa voisine", "à son cousin"])
+    fr = frac.split()[1]
+    if rng.random() < 0.45:
+        add(f"{name} a {total} {plur}. {il(g)} en donne {frac} {to}. Combien lui en reste-t-il ?",
+            f"{frac.capitalize()} de {total} est {part}. {total} moins {part} font {rest}. Il lui reste {form(rest, sing, plur)}.")
+    else:
+        verb = rng.choice(["mange", "perd"] if food else ["perd", "vend"])
+        k = rng.randint(1, rest) if rest > 1 else 0
+        if not k or k >= rest:
+            continue
+        add(f"{name} a {total} {plur}. {il(g)} en donne {frac} {to}, puis {il(g).lower()} en {verb} {k}. Combien lui en reste-t-il ?",
+            f"D'abord, {frac} de {total} est {part}, donc il lui reste {total} moins {part}, soit {rest}. "
+            f"Ensuite, {rest} moins {k} font {rest - k}. Il lui reste {form(rest - k, sing, plur)}.")
+for n in range(2, 41):  # fractions seules
+    for frac, d in FRAC:
+        if n % d == 0 and rng.random() < 0.6 and not (frac == "la moitié" and n in (10, 12)):
+            add(f"Quel est {frac} de {n} ?", f"{frac.capitalize()} de {n} est {n // d}, car {n} divisé par {d} égale {n // d}.")
+
+WORDS_FOIS = {2: "deux", 3: "trois", 4: "quatre", 5: "cinq"}
+for _ in range(250):  # « k fois plus que », éventuellement « ensemble »
+    (a_name, ga), (b_name, gb) = rng.sample(NAMES, 2)
+    sing, plur, _food = rng.choice(THINGS)
+    k, b = rng.randint(2, 5), rng.randint(1, 10)
+    kw = str(k) if rng.random() < 0.5 else WORDS_FOIS[k]
+    if rng.random() < 0.5:
+        add(f"{a_name} a {kw} fois plus de {plur} {que(b_name)}. {b_name} a {form(b, sing, plur)}. Combien de {plur} a {a_name} ?",
+            f"{a_name} en a {k} fois plus, donc {k} fois {b} font {k * b}. {a_name} a {k * b} {plur}.")
+    else:
+        ils = "elles" if ga == gb == "f" else "ils"
+        add(f"{a_name} a {kw} fois plus de {plur} {que(b_name)}. {b_name} a {form(b, sing, plur)}. Combien de {plur} ont-{ils} ensemble ?",
+            f"D'abord, {k} fois {b} font {k * b} : {a_name} a {k * b} {plur}. Ensuite, {k * b} plus {b} font {k * b + b}. "
+            f"Ensemble, {ils} ont {k * b + b} {plur}.")
+
+for _ in range(300):  # trois étapes
+    name, g = rng.choice(NAMES)
+    sing, plur, food = rng.choice(THINGS)
+    a = rng.randint(5, 20)
+    steps, val, txt, ans = [], a, [], []
+    for i in range(3):
+        if rng.random() < 0.5 and val > 1:
+            x = rng.randint(1, val - 1)
+            v = rng.choice(["perd", "donne"] + (["mange"] if food else ["vend"]))
+            txt.append(f"en {v} {x}")
+            ans.append(f"{val} moins {x} font {val - x}")
+            val -= x
+        else:
+            x = rng.randint(1, 9)
+            v = rng.choice(["gagne", "reçoit", "trouve", "achète"])
+            txt.append(f"en {v} {x}")
+            ans.append(f"{val} plus {x} font {val + x}")
+            val += x
+    add(f"{name} a {a} {plur}. {il(g)} {txt[0]}, puis {txt[1]}, puis {txt[2]}. Combien de {plur} a-{t_il(g)} ?",
+        f"D'abord, {ans[0]}. Ensuite, {ans[1]}. Enfin, {ans[2]}. {il(g)} a {form(val, sing, plur)}.")
+
+for _ in range(250):  # boîtes, puis on donne ou on reçoit
+    un, sing, plur, items = rng.choice(PACKS)
+    k, n = rng.randint(2, 8), rng.randint(2, 6)
+    tot = k * n
+    if rng.random() < 0.7:
+        d = rng.randint(1, tot - 1)
+        q = rng.choice([f"J'ai {n} {plur} de {k} {items}. Je donne {d} {items}. Combien de {items} me reste-t-il ?",
+                        f"{un} {sing} contient {k} {items}. J'ai {n} {plur} et j'en donne {d}. Combien de {items} me reste-t-il ?",
+                        f"J'ai {n} {plur}. Chaque {sing} contient {k} {items}. J'en perds {d}. Combien de {items} me reste-t-il ?"])
+        add(q, f"D'abord, {n} fois {k} font {tot} {items}. Ensuite, {tot} moins {d} font {tot - d}. Il te reste {tot - d} {items}.")
+    else:
+        d = rng.randint(1, 10)
+        add(f"J'ai {n} {plur} de {k} {items}. On m'en donne encore {d}. Combien de {items} ai-je ?",
+            f"D'abord, {n} fois {k} font {tot} {items}. Ensuite, {tot} plus {d} font {tot + d}. Tu as {tot + d} {items}.")
+
+for _ in range(150):  # plusieurs achats
+    name, g = rng.choice(NAMES)
+    n_items = rng.choice([2, 2, 3])
+    its = rng.sample(ITEMS, n_items)
+    prices = [rng.randint(1, 12) for _ in its]
+    a = rng.randint(sum(prices), 50)
+    if rng.random() < 0.5:
+        who, res = f"J'ai {a} euros. J'achète ", "Il te reste"
+        tail = "Combien d'argent me reste-t-il ?"
+    else:
+        who, res = f"{name} a {a} euros. {il(g)} achète ", "Il lui reste"
+        tail = "Combien d'argent lui reste-t-il ?"
+    parts = [f"{it} à {p} euros" for it, p in zip(its, prices)]
+    liste = ", ".join(parts[:-1]) + " et " + parts[-1]
+    s = sum(prices)
+    add(f"{who}{liste}. {tail}",
+        f"D'abord, {' plus '.join(map(str, prices))} font {s} euros dépensés. Ensuite, {a} moins {s} font {a - s}. "
+        f"{res} {a - s} euros.")
+
+LEGS = [("vache", "vaches", 4, "f"), ("poule", "poules", 2, "f"), ("mouton", "moutons", 4, "m"),
+        ("canard", "canards", 2, "m"), ("chèvre", "chèvres", 4, "f"), ("lapin", "lapins", 4, "m"),
+        ("oie", "oies", 2, "f"), ("cochon", "cochons", 4, "m")]
+WHEELS = [("voiture", "voitures", 4, "f"), ("vélo", "vélos", 2, "m"), ("moto", "motos", 2, "f"),
+          ("tricycle", "tricycles", 3, "m"), ("camion", "camions", 6, "m")]
+for _ in range(250):  # pattes / roues : connaissance + deux multiplications + addition
+    if rng.random() < 0.6:
+        (s1, p1, l1, g1), (s2, p2, l2, g2) = rng.sample(LEGS, 2)
+        what, intro = "pattes", rng.choice(["Un fermier a", "Dans la ferme, il y a", "Il y a"])
+    else:
+        (s1, p1, l1, g1), (s2, p2, l2, g2) = rng.sample(WHEELS, 2)
+        what, intro = "roues", rng.choice(["Dans le parking, il y a", "Il y a", "Dans la rue, il y a"])
+    a, b = rng.randint(1, 6), rng.randint(1, 6)
+    u1 = ("Une" if g1 == "f" else "Un")
+    u2 = ("une" if g2 == "f" else "un")
+    add(f"{intro} {form(a, s1, p1)} et {form(b, s2, p2)}. Combien de {what} y a-t-il en tout ?",
+        f"{u1} {s1} a {l1} {what} et {u2} {s2} a {l2} {what}. {a} fois {l1} font {a * l1}, et {b} fois {l2} font {b * l2}. "
+        f"{a * l1} plus {b * l2} font {a * l1 + b * l2}. Il y a {a * l1 + b * l2} {what} en tout.")
+
+TRIPS = [("Un train", "il", "repart"), ("Un bus", "il", "repart"), ("Un avion", "il", "repart"), ("Une navette", "elle", "repart")]
+for _ in range(200):  # horaires en chaîne
+    veh, p, verb = rng.choice(TRIPS)
+    h, a, b = rng.randint(5, 14), rng.randint(1, 4), rng.randint(1, 3)
+    hs = lambda n: f"{n} heure{'s' if n > 1 else ''}"
+    if rng.random() < 0.6:
+        add(f"{veh} part à {h} heures. Le trajet dure {hs(a)}, puis {p} attend {hs(b)}. À quelle heure {verb}-{p} ?",
+            f"D'abord, {h} plus {a} font {h + a} : {p} arrive à {h + a} heures. Ensuite, {h + a} plus {b} font {h + a + b}. "
+            f"{p.capitalize()} {verb} à {h + a + b} heures.")
+    else:
+        name, g = rng.choice(NAMES)
+        add(f"{name} commence à travailler à {h} heures. {il(g)} travaille {hs(a)}, puis {il(g).lower()} fait une pause de {hs(b)}. À quelle heure finit sa pause ?",
+            f"D'abord, {h} plus {a} font {h + a}. Ensuite, {h + a} plus {b} font {h + a + b}. Sa pause finit à {h + a + b} heures.")
+
+for _ in range(200):  # âges en deux étapes
+    (a_name, ga), (b_name, gb) = rng.sample(NAMES, 2)
+    b, k, n = rng.randint(5, 30), rng.randint(1, 8), rng.randint(1, 10)
+    t = "aura" 
+    if rng.random() < 0.5:
+        add(f"{a_name} a {k} ans de plus {que(b_name)}. {b_name} a {b} ans. Quel âge aura {a_name} dans {n} ans ?",
+            f"D'abord, {b} plus {k} font {b + k} : {a_name} a {b + k} ans. Ensuite, {b + k} plus {n} font {b + k + n}. "
+            f"Dans {n} ans, {a_name} aura {b + k + n} ans.")
+    elif b > k:
+        add(f"{a_name} a {k} ans de moins {que(b_name)}. {b_name} a {b} ans. Quel âge aura {a_name} dans {n} ans ?",
+            f"D'abord, {b} moins {k} font {b - k} : {a_name} a {b - k} ans. Ensuite, {b - k} plus {n} font {b - k + n}. "
+            f"Dans {n} ans, {a_name} aura {b - k + n} ans.")
+
+for d in range(2, 11):  # table de division complète
+    for q in range(1, 11):
+        if (d * q, d) not in BAD_PAIRS:
+            add(f"Combien font {d * q} divisé par {d} ?", f"{d * q} divisé par {d} égale {q}.")
+
 # ------------------------------------------------------------------ conversation
 CONV = [
     (["Bonjour", "Bonjour !", "Salut", "Salut !", "Coucou", "Hello", "Bonsoir", "Salut Alice", "Bonjour Alice",
@@ -941,7 +1089,8 @@ PIVOT = [p for p in PIVOT if norm(p[0]) not in EVAL_QUESTIONS]
 # ------------------------------------------------------------------ écriture
 def elide(text):
     """« de » élidé devant une voyelle : d'œufs, d'oranges, d'euros."""
-    return re.sub(r"\b([Dd])e (?=[aeiouyéèêœAEIOUÉ])", r"\1'", text)
+    text = re.sub(r"\b([Dd])e (?=[aeiouyéèêœAEIOUÉ])", r"\1'", text)
+    return re.sub(r"\b1 ans\b", "1 an", text)  # « dans 1 an », « 1 an de plus »
 
 
 def main():
