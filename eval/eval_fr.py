@@ -3,7 +3,8 @@
     python eval/eval_fr.py                 # modes direct et pivot du modèle entraîné
     python eval/eval_fr.py --verbose       # affiche chaque réponse
     python eval/eval_fr.py --set heldout   # 32 questions jamais vues à l'entraînement
-    ALICE_MODEL=models/SmolLM2-135M-Instruct-Q4_0.gguf python eval/eval_fr.py --modes origine,direct,pivot
+    ALICE_MODEL=chemin/vers/SmolLM2-135M-Instruct-Q4_0.gguf python eval/eval_fr.py --modes origine,direct,pivot
+                                           # modèle d'origine (à télécharger, voir README)
 
 Mesures :
 - correct  : la réponse contient la bonne réponse attendue (pour un nombre : le dernier
@@ -35,7 +36,7 @@ def baseline(question):
 
 
 MODES = {
-    "origine": baseline,  # à lancer avec ALICE_MODEL=models/SmolLM2-135M-Instruct-Q4_0.gguf
+    "origine": baseline,  # pour le modèle d'origine (voir ci-dessus)
     "direct": lambda q: chat.ask(q, "direct"),
     "direct0": lambda q: chat.answer_direct(q, shots=False),  # sans exemples
     "direct5": lambda q: chat.answer_direct(q, shots=True),   # avec 5 exemples

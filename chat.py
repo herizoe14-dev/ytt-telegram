@@ -29,7 +29,6 @@ from functools import lru_cache
 from pathlib import Path
 
 MODELS = Path(__file__).parent / "models"
-BASE_MODEL = MODELS / "SmolLM2-135M-Instruct-Q4_0.gguf"            # modèle d'origine
 MODEL_PATH = Path(os.environ.get("ALICE_MODEL", MODELS / "Alice-SmolLM2-135M-fr-Q4_0.gguf"))  # entraîné en français
 # Le modèle entraîné n'a plus besoin d'exemples dans la consigne (et répond mieux sans).
 FINE_TUNED = MODEL_PATH.name.startswith("Alice")

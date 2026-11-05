@@ -1,7 +1,7 @@
 """Convertit un SmolLM2 (format Hugging Face) en GGUF Q4_0, même taille que l'original.
 
 Les métadonnées (tokenizer, architecture, modèle de chat…) sont recopiées depuis
-le GGUF de référence du dépôt ; seuls les poids changent. La quantification est
+le GGUF d'Alice du dépôt ; seuls les poids changent. La quantification est
 faite par llama.cpp (via llama-cpp-python).
 
     python train/to_gguf.py <dossier_hf> <sortie.gguf> [--ref models/....gguf]
@@ -14,7 +14,8 @@ import numpy as np
 from gguf import GGUFReader, GGUFWriter, GGUFValueType
 from safetensors.torch import load_file
 
-REF = os.path.join(os.path.dirname(__file__), "..", "models", "SmolLM2-135M-Instruct-Q4_0.gguf")
+# Métadonnées identiques à celles du modèle d'origine (recopiées lors de la conversion)
+REF = os.path.join(os.path.dirname(__file__), "..", "models", "Alice-SmolLM2-135M-fr-Q4_0.gguf")
 LAYER = {
     "input_layernorm": "attn_norm", "post_attention_layernorm": "ffn_norm",
     "self_attn.q_proj": "attn_q", "self_attn.k_proj": "attn_k", "self_attn.v_proj": "attn_v",

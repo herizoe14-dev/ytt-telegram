@@ -2,21 +2,22 @@
 
 Un modèle d'IA très léger, utilisable hors ligne sur un simple CPU.
 
-## Modèles
+## Modèle
 
-| | Alice (par défaut) | Modèle d'origine |
-|---|---|---|
-| Fichier | `models/Alice-SmolLM2-135M-fr-Q4_0.gguf` | `models/SmolLM2-135M-Instruct-Q4_0.gguf` |
-| Base | SmolLM2-135M-Instruct, **affiné en français** (voir `train/`) | [SmolLM2-135M-Instruct](https://huggingface.co/HuggingFaceTB/SmolLM2-135M-Instruct) ([GGUF](https://huggingface.co/bartowski/SmolLM2-135M-Instruct-GGUF)) |
-| Taille | ~92 Mo (Q4_0) | ~92 Mo (Q4_0) |
-| Paramètres | 135 millions | 135 millions |
-| Licence | Apache 2.0 | Apache 2.0 |
-| SHA-256 | `280ea4d47271e8c883ec8a6ad3685d606574934a05c32c2c5323a2e4b576bc78` | `bcc3af2849ad6095af57e9b5cd43775256efdc66e306acb529172f92d0c04b03` |
+| | |
+|---|---|
+| Fichier | `models/Alice-SmolLM2-135M-fr-Q4_0.gguf` |
+| Base | [SmolLM2-135M-Instruct](https://huggingface.co/HuggingFaceTB/SmolLM2-135M-Instruct) (Hugging Face), **affiné en français** (voir `train/`) |
+| Format | GGUF, quantification Q4_0 (~92 Mo) |
+| Paramètres | 135 millions |
+| Licence | Apache 2.0 |
+| SHA-256 | `280ea4d47271e8c883ec8a6ad3685d606574934a05c32c2c5323a2e4b576bc78` |
 
 L'entraînement n'ajoute aucun paramètre : Alice a exactement la même architecture
-et le même poids que le modèle d'origine. Le modèle d'origine sert de point de
-comparaison et de référence pour la conversion ; on peut le supprimer pour gagner
-92 Mo si on n'en a pas besoin.
+et le même poids que le modèle d'origine. Celui-ci n'est plus dans le dépôt ; pour
+les comparaisons, il se télécharge sur
+[Hugging Face](https://huggingface.co/bartowski/SmolLM2-135M-Instruct-GGUF)
+(`SmolLM2-135M-Instruct-Q4_0.gguf`).
 
 ## Utilisation
 
@@ -27,7 +28,7 @@ python chat.py "Léa a 9 bonbons. Elle en mange 4. Combien lui en reste-t-il ?"
 python chat.py --mode pivot "Quelle est la capitale du Japon ?"   # réfléchit en anglais
 python chat.py --mode pivot --debug "Combien font 9 plus 6 ?"      # montre les étapes
 python chat.py                                                     # mode interactif
-ALICE_MODEL=models/SmolLM2-135M-Instruct-Q4_0.gguf python chat.py "Bonjour"   # modèle d'origine
+ALICE_MODEL=chemin/vers/un/autre.gguf python chat.py "Bonjour"                # un autre modèle
 ```
 
 ## Tester dans Telegram
