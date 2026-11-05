@@ -16,7 +16,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "eval"))
-from questions_fr import CASES, CASES_HELDOUT  # noqa: E402
+from questions_fr import CASES, CASES_HELDOUT, CASES_RAISONNEMENT  # noqa: E402
 
 rng = random.Random(0)
 OUT = []
@@ -47,7 +47,7 @@ def norm(s):
     return re.sub(r"\W+", " ", "".join(c for c in s if not unicodedata.combining(c))).strip()
 
 
-EVAL_QUESTIONS = {norm(q) for q, _, _ in CASES + CASES_HELDOUT}
+EVAL_QUESTIONS = {norm(q) for q, _, _ in CASES + CASES_HELDOUT + CASES_RAISONNEMENT}
 
 # ------------------------------------------------------------------ capitales
 CAPITALS = [  # (complément « de … », capitale) — sans les pays de l'évaluation
@@ -439,15 +439,294 @@ FACTS = [
 for q, a in FACTS:
     add(q, a, 2)
 
+# ------------------------------------------------------------------ raisonnement en étapes
+# Problèmes en plusieurs étapes : la réponse pose chaque étape, puis donne le résultat
+# à la fin (« D'abord… Ensuite… Il a 7 pommes. »).
+def il(g):
+    return "Elle" if g == "f" else "Il"
+
+
+def t_il(g):
+    return "t-elle" if g == "f" else "t-il"
+
+
+def other(name):
+    return rng.choice([n for n in NAMES if n[0] != name])
+
+
+for _ in range(120):  # âges
+    name, g = rng.choice(NAMES)
+    a, k = rng.randint(4, 40), rng.randint(1, 12)
+    kind = rng.randrange(3)
+    if kind == 0:
+        add(f"{name} a {a} ans. Dans {k} ans, quel âge aura-{t_il(g)} ?",
+            f"Dans {k} ans, {name} aura {a} plus {k} ans. {a} plus {k} font {a + k}. {il(g)} aura {a + k} ans.")
+    elif kind == 1 and a > k:
+        add(f"{name} a {a} ans. Quel âge avait-{t_il(g)} il y a {k} ans ?",
+            f"Il y a {k} ans, {name} avait {a} moins {k} ans. {a} moins {k} font {a - k}. {il(g)} avait {a - k} ans.")
+    elif a > k:
+        sib, sg = rng.choice([("son frère", "m"), ("sa sœur", "f")])
+        lui = "elle" if g == "f" else "lui"
+        if rng.random() < 0.5:
+            add(f"{name} a {a} ans. {sib.capitalize()} a {k} ans de plus {que(lui)}. Quel âge a {sib} ?",
+                f"{a} plus {k} font {a + k}. {sib.capitalize()} a {a + k} ans.")
+        else:
+            add(f"{name} a {a} ans. {sib.capitalize()} a {k} ans de moins {que(lui)}. Quel âge a {sib} ?",
+                f"{a} moins {k} font {a - k}. {sib.capitalize()} a {a - k} ans.")
+
+for _ in range(150):  # « de plus que » / « de moins que »
+    (a_name, _), (b_name, _) = rng.sample(NAMES, 2)
+    sing, plur, _food = rng.choice(THINGS)
+    b, k = rng.randint(2, 20), rng.randint(1, 10)
+    if rng.random() < 0.5:
+        add(f"{a_name} a {k} {plur} de plus {que(b_name)}. {b_name} a {b} {plur}. Combien de {plur} a {a_name} ?",
+            f"{a_name} en a {k} de plus {que(b_name)}, donc {b} plus {k} font {b + k}. {a_name} a {b + k} {plur}.")
+    elif b > k:
+        add(f"{a_name} a {k} {plur} de moins {que(b_name)}. {b_name} a {b} {plur}. Combien de {plur} a {a_name} ?",
+            f"{a_name} en a {k} de moins {que(b_name)}, donc {b} moins {k} font {b - k}. {a_name} a {form(b - k, sing, plur)}.")
+
+PACKS = [("Un", "paquet", "paquets", "biscuits"), ("Une", "boîte", "boîtes", "crayons"),
+         ("Un", "sac", "sacs", "billes"), ("Un", "carton", "cartons", "bouteilles"),
+         ("Un", "sachet", "sachets", "bonbons"), ("Un", "panier", "paniers", "pommes"),
+         ("Une", "barquette", "barquettes", "fraises"), ("Un", "album", "albums", "images")]
+for _ in range(150):  # paquets (multiplication)
+    un, sing, plur, items = rng.choice(PACKS)
+    k, n = rng.randint(2, 10), rng.randint(2, 9)
+    if rng.random() < 0.5:
+        add(f"{un} {sing} contient {k} {items}. J'achète {n} {plur}. Combien de {items} ai-je ?",
+            f"{n} {plur} de {k} {items} : {n} fois {k} font {n * k}. Tu as {n * k} {items}.")
+    else:
+        name, g = rng.choice(NAMES)
+        add(f"{name} a {n} {plur}. Chaque {sing} contient {k} {items}. Combien de {items} a-{t_il(g)} en tout ?",
+            f"{n} fois {k} font {n * k}. {il(g)} a {n * k} {items} en tout.")
+
+ITEMS = ["un livre", "un ballon", "un jouet", "une glace", "un cahier", "un sandwich", "une place de cinéma",
+         "un gâteau", "une poupée", "un stylo", "une casquette", "un jeu"]
+for _ in range(150):  # argent
+    kind = rng.randrange(3)
+    if kind == 0:
+        a = rng.randint(5, 50)
+        p = rng.randint(1, a - 1)
+        add(f"J'ai {a} euros. J'achète {rng.choice(ITEMS)} à {p} euros. Combien d'argent me reste-t-il ?",
+            f"{a} moins {p} font {a - p}. Il te reste {a - p} euros.")
+    elif kind == 1:
+        name, g = rng.choice(NAMES)
+        x, y = rng.sample(ITEMS, 2)
+        p, q = rng.randint(1, 15), rng.randint(1, 15)
+        a = rng.randint(p + q, 50)
+        add(f"{name} a {a} euros. {il(g)} achète {x} à {p} euros et {y} à {q} euros. Combien d'argent lui reste-t-il ?",
+            f"D'abord, {p} plus {q} font {p + q} euros dépensés. Ensuite, {a} moins {p + q} font {a - p - q}. "
+            f"Il lui reste {a - p - q} euros.")
+    else:
+        it = rng.choice(ITEMS)
+        p, n = rng.randint(1, 10), rng.randint(2, 9)
+        pl = it.split(" ", 1)[1]
+        pl = " ".join(w if w in ("de", "à") else (w + "x" if w.endswith(("eau", "eu")) else (w if w.endswith("s") else w + "s"))
+                      for w in pl.split())
+        add(f"{it.capitalize()} coûte {p} euros. Combien coûtent {n} {pl} ?",
+            f"{n} fois {p} font {n * p}. {n} {pl} coûtent {n * p} euros.")
+
+for _ in range(250):  # deux étapes
+    name, g = rng.choice(NAMES)
+    sing, plur, food = rng.choice(THINGS)
+    lose = rng.choice(["mange", "donne", "perd"] if food else ["donne", "perd", "vend"])
+    gain = rng.choice(["achète", "reçoit", "trouve", "gagne"])
+    a = rng.randint(3, 20)
+    b = rng.randint(1, a - 1)
+    c = rng.randint(1, 12)
+    if rng.random() < 0.5:
+        add(f"{name} a {a} {plur}. {il(g)} en {lose} {b}, puis {il(g).lower()} en {gain} {c}. Combien de {plur} a-{t_il(g)} ?",
+            f"D'abord, {a} moins {b} font {a - b}. Ensuite, {a - b} plus {c} font {a - b + c}. "
+            f"{il(g)} a {a - b + c} {plur}.")
+    else:
+        b2 = rng.randint(1, a + c - 1)
+        add(f"{name} a {form(a, sing, plur)}. {il(g)} en {gain} {c}, puis {il(g).lower()} en {lose} {b2}. Combien de {plur} a-{t_il(g)} ?",
+            f"D'abord, {a} plus {c} font {a + c}. Ensuite, {a + c} moins {b2} font {a + c - b2}. "
+            f"{il(g)} a {form(a + c - b2, sing, plur)}.")
+for _ in range(80):  # deux étapes avec de l'argent
+    name, g = rng.choice(NAMES)
+    a, b = rng.randint(2, 30), rng.randint(1, 20)
+    c = rng.randint(1, a + b - 1)
+    add(f"{name} a {a} euros. {il(g)} gagne {b} euros, puis {il(g).lower()} dépense {c} euros. Combien d'euros a-{t_il(g)} ?",
+        f"D'abord, {a} plus {b} font {a + b}. Ensuite, {a + b} moins {c} font {a + b - c}. {il(g)} a {a + b - c} euros.")
+
+for _ in range(200):  # comparer des nombres
+    x, y = rng.sample(range(0, 100), 2)
+    kind = rng.randrange(3)
+    if kind == 0:
+        add(f"Quel est le plus grand nombre : {x} ou {y} ?",
+            f"{max(x, y)} est plus grand que {min(x, y)}. Le plus grand nombre est {max(x, y)}.")
+    elif kind == 1:
+        add(f"Quel est le plus petit nombre : {x} ou {y} ?",
+            f"{min(x, y)} est plus petit que {max(x, y)}. Le plus petit nombre est {min(x, y)}.")
+    elif x > y:
+        add(f"Est-ce que {x} est plus grand que {y} ?", f"Oui, {x} est plus grand que {y}.")
+    else:
+        add(f"Est-ce que {x} est plus grand que {y} ?", f"Non, {x} est plus petit que {y}.")
+
+for _ in range(120):  # nombre suivant / précédent
+    n = rng.randint(1, 99)
+    if rng.random() < 0.6:
+        add(f"Quel nombre vient après {n} ?", f"Le nombre qui vient après {n} est {n + 1}.")
+    else:
+        add(f"Quel nombre vient avant {n} ?", f"Le nombre qui vient avant {n} est {n - 1}.")
+
+for _ in range(150):  # suites
+    d = rng.choice([1, 2, 3, 5, 10])
+    s0 = rng.randint(0, 30)
+    if rng.random() < 0.7:
+        seq = [s0 + i * d for i in range(4)]
+        add(f"Complète la suite : {', '.join(map(str, seq))}, ...",
+            f"On ajoute {d} à chaque fois : {seq[-1]} plus {d} font {seq[-1] + d}. Le nombre suivant est {seq[-1] + d}.")
+    else:
+        s0 = rng.randint(4 * d, 4 * d + 40)
+        seq = [s0 - i * d for i in range(4)]
+        add(f"Complète la suite : {', '.join(map(str, seq))}, ...",
+            f"On enlève {d} à chaque fois : {seq[-1]} moins {d} font {seq[-1] - d}. Le nombre suivant est {seq[-1] - d}.")
+
+LOGIC = [  # (question, réponse) — logique simple, écrite à la main
+    ("Tous les chats sont des animaux. Minou est un chat. Minou est-il un animal ?",
+     "Oui. Tous les chats sont des animaux, et Minou est un chat, donc Minou est un animal."),
+    ("Tous les chiens ont une queue. Rex est un chien. Rex a-t-il une queue ?",
+     "Oui. Tous les chiens ont une queue, et Rex est un chien, donc Rex a une queue."),
+    ("Tous les poissons vivent dans l'eau. Le saumon est un poisson. Le saumon vit-il dans l'eau ?",
+     "Oui. Tous les poissons vivent dans l'eau, et le saumon est un poisson, donc le saumon vit dans l'eau."),
+    ("Tous les insectes ont six pattes. La fourmi est un insecte. Combien de pattes a la fourmi ?",
+     "Tous les insectes ont six pattes, et la fourmi est un insecte, donc la fourmi a 6 pattes."),
+    ("Tous les triangles ont trois côtés. Cette figure est un triangle. Combien de côtés a-t-elle ?",
+     "Tous les triangles ont trois côtés, et cette figure est un triangle, donc elle a 3 côtés."),
+    ("Tous les mammifères ont des poils. La vache est un mammifère. La vache a-t-elle des poils ?",
+     "Oui. Tous les mammifères ont des poils, et la vache est un mammifère, donc la vache a des poils."),
+    ("Toutes les roses sont des fleurs. Cette plante est une rose. Est-ce une fleur ?",
+     "Oui. Toutes les roses sont des fleurs, et cette plante est une rose, donc c'est une fleur."),
+    ("Tous les élèves de la classe portent un uniforme. Hugo est dans la classe. Hugo porte-t-il un uniforme ?",
+     "Oui. Tous les élèves de la classe portent un uniforme, et Hugo est dans la classe, donc Hugo porte un uniforme."),
+    ("Toutes les voitures ont un moteur. Ce véhicule est une voiture. A-t-il un moteur ?",
+     "Oui. Toutes les voitures ont un moteur, et ce véhicule est une voiture, donc il a un moteur."),
+    ("Aucun poisson ne sait voler. Le thon est un poisson. Le thon sait-il voler ?",
+     "Non. Aucun poisson ne sait voler, et le thon est un poisson, donc le thon ne sait pas voler."),
+    ("Aucun chat n'aboie. Félix est un chat. Félix aboie-t-il ?",
+     "Non. Aucun chat n'aboie, et Félix est un chat, donc Félix n'aboie pas."),
+    ("Les pierres ne flottent pas. Je lance une pierre dans l'eau. Va-t-elle flotter ?",
+     "Non. Les pierres ne flottent pas, donc la pierre va couler."),
+    ("Tous les chats sont des animaux. Rex est un animal. Rex est-il forcément un chat ?",
+     "Non, pas forcément. Tous les chats sont des animaux, mais beaucoup d'animaux ne sont pas des chats."),
+    ("Toutes les pommes sont des fruits. Ceci est un fruit. Est-ce forcément une pomme ?",
+     "Non, pas forcément. Toutes les pommes sont des fruits, mais il existe beaucoup d'autres fruits."),
+    ("S'il pleut, le sol est mouillé. Il pleut. Le sol est-il mouillé ?",
+     "Oui. S'il pleut, le sol est mouillé, et il pleut, donc le sol est mouillé."),
+    ("Si je lâche un verre, il tombe. Je lâche un verre. Que se passe-t-il ?",
+     "Le verre tombe, car tout objet qu'on lâche tombe vers le sol."),
+    ("Si la lumière est éteinte, la pièce est sombre. La lumière est éteinte. La pièce est-elle sombre ?",
+     "Oui. La lumière est éteinte, donc la pièce est sombre."),
+    ("Léa est dans la cuisine. La cuisine est dans la maison. Léa est-elle dans la maison ?",
+     "Oui. Léa est dans la cuisine, et la cuisine est dans la maison, donc Léa est dans la maison."),
+    ("Le livre est sur la table. La table est dans le salon. Où est le livre ?",
+     "Le livre est sur la table, et la table est dans le salon, donc le livre est dans le salon."),
+    ("Paul est né avant Léa. Léa est née avant Hugo. Qui est né en premier ?",
+     "Paul est né avant Léa, et Léa avant Hugo, donc Paul est né en premier."),
+    ("Une boîte rouge est plus lourde qu'une boîte bleue. La boîte bleue est plus lourde qu'une boîte verte. Quelle boîte est la plus légère ?",
+     "La rouge est plus lourde que la bleue, et la bleue plus lourde que la verte, donc la boîte verte est la plus légère."),
+    ("Si 5 est plus grand que 3, et 3 plus grand que 1, quel est le plus petit nombre ?",
+     "5 est plus grand que 3, et 3 plus grand que 1, donc le plus petit nombre est 1."),
+    ("Il fait nuit. Le soleil est-il visible dans le ciel ?",
+     "Non. Quand il fait nuit, le soleil n'est pas visible dans le ciel."),
+    ("J'ai froid. Que puis-je faire ?",
+     "Tu peux mettre un pull ou un manteau, ou te mettre au chaud."),
+    ("Mon verre est vide et j'ai soif. Que dois-je faire ?",
+     "Tu peux remplir ton verre d'eau et boire."),
+]
+for q, a in LOGIC:
+    add(q, a, 2)
+
+for i, d in enumerate(DAYS):  # jours : « dans k jours »
+    for k in range(2, 7):
+        days = [DAYS[(i + j) % 7] for j in range(1, k + 1)]
+        add(f"Si aujourd'hui est {d}, quel jour serons-nous dans {k} jours ?",
+            f"Après {d}, on compte {k} jours : {', '.join(days)}. Dans {k} jours, nous serons {days[-1]}.")
+
+EVENTS = [("Le film", "il"), ("Le match", "il"), ("La réunion", "elle"), ("Le cours", "il"),
+          ("La fête", "elle"), ("Le spectacle", "il"), ("La course", "elle")]
+for _ in range(150):  # heures
+    h, k = rng.randint(6, 20), rng.randint(1, 4)
+    if h + k > 23:
+        continue
+    if rng.random() < 0.6:
+        ev, p = rng.choice(EVENTS)
+        add(f"{ev} commence à {h} heures et dure {k} heure{'s' if k > 1 else ''}. À quelle heure finit-{p} ?",
+            f"{h} plus {k} font {h + k}. {p.capitalize()} finit à {h + k} heures.")
+    else:
+        add(f"Il est {h} heures. Quelle heure sera-t-il dans {k} heure{'s' if k > 1 else ''} ?",
+            f"{h} plus {k} font {h + k}. Il sera {h + k} heures.")
+
+for _ in range(150):  # partages (division)
+    sing, plur, _food = rng.choice(THINGS)
+    k, q = rng.randint(2, 6), rng.randint(1, 8)
+    who = rng.choice([("enfants", "enfant"), ("amis", "ami"), ("élèves", "élève")])
+    add(f"On partage {k * q} {plur} entre {k} {who[0]}. Combien de {plur} reçoit chaque {who[1]} ?",
+        f"{k * q} divisé par {k} égale {q}. Chaque {who[1]} reçoit {form(q, sing, plur)}.")
+
+for _ in range(100):  # pair / impair
+    n = rng.randint(0, 99)
+    if n % 2 == 0:
+        add(f"Le nombre {n} est-il pair ou impair ?", f"{n} se divise exactement par 2, donc {n} est pair.")
+    else:
+        add(f"Le nombre {n} est-il pair ou impair ?", f"{n} ne se divise pas exactement par 2, donc {n} est impair.")
+
+GROUPS2 = [("animaux", ["chats", "chiens", "lapins", "poules", "vaches", "moutons", "canards"],
+            ["dans la ferme", "dans le jardin", "dans la maison"]),
+           ("fruits", ["pommes", "poires", "bananes", "oranges", "fraises"], ["dans le panier", "sur la table"]),
+           ("jouets", ["ballons", "poupées", "voitures", "peluches"], ["dans le coffre", "dans la chambre"])]
+for _ in range(150):  # regrouper deux groupes
+    cat, kinds, places = rng.choice(GROUPS2)
+    x, y = rng.sample(kinds, 2)
+    a, b = rng.randint(1, 15), rng.randint(1, 15)
+    pre = "d'" if cat[0] in "aeiou" else "de "
+    add(f"Il y a {a} {x} et {b} {y} {rng.choice(places)}. Combien {pre}{cat} y a-t-il ?",
+        f"{a} plus {b} font {a + b}. Il y a {a + b} {cat}.")
+for _ in range(40):
+    a, b = rng.randint(5, 20), rng.randint(5, 20)
+    add(f"Dans la classe, il y a {a} garçons et {b} filles. Combien d'enfants y a-t-il ?",
+        f"{a} plus {b} font {a + b}. Il y a {a + b} enfants dans la classe.")
+
+for n in range(2, 11):  # semaines
+    add(f"Combien de jours y a-t-il dans {n} semaines ?",
+        f"Une semaine a 7 jours. {n} fois 7 font {7 * n}. Il y a {7 * n} jours dans {n} semaines.")
+    add(f"Une semaine a 7 jours. Combien de jours y a-t-il dans {n} semaines ?",
+        f"{n} fois 7 font {7 * n}. Il y a {7 * n} jours dans {n} semaines.")
+
+PLACES = ["sur la table", "dans la boîte", "dans le panier", "sur l'étagère"]
+for _ in range(150):  # poser / enlever / ajouter
+    sing, plur, _food = rng.choice(THINGS)
+    place = rng.choice(PLACES)
+    a = rng.randint(2, 15)
+    if rng.random() < 0.6:
+        b = rng.randint(1, a - 1)
+        add(f"Je pose {a} {plur} {place}, puis j'en enlève {b}. Combien de {plur} reste-t-il {place} ?",
+            f"{a} moins {b} font {a - b}. Il reste {form(a - b, sing, plur)} {place}.")
+    else:
+        b = rng.randint(1, 10)
+        add(f"Il y a {a} {plur} {place}. J'en ajoute {b}. Combien de {plur} y a-t-il maintenant ?",
+            f"{a} plus {b} font {a + b}. Il y a maintenant {a + b} {plur} {place}.")
+
+# Table de multiplication complète (sauf les calculs de l'évaluation), deux formulations.
+for a in range(1, 11):
+    for b in range(1, 11):
+        if (a, b) not in BAD_PAIRS:
+            add(f"Combien font {a} fois {b} ?", f"{a} fois {b} font {a * b}.")
+            add(f"Calcule {a} × {b}.", f"{a} × {b} = {a * b}.")
+
 # ------------------------------------------------------------------ conversation
 CONV = [
-    (["Bonjour", "Bonjour !", "Salut", "Salut !", "Coucou", "Hello", "Bonsoir"],
+    (["Bonjour", "Bonjour !", "Salut", "Salut !", "Coucou", "Hello", "Bonsoir", "Salut Alice", "Bonjour Alice",
+      "Coucou !", "Hey", "Bonjour à toi", "Salut, ça va ?", "slt", "bjr"],
      ["Bonjour ! Je suis Alice. Comment puis-je t'aider ?", "Salut ! Que puis-je faire pour toi ?",
-      "Bonjour ! Pose-moi une question, je ferai de mon mieux."]),
+      "Bonjour ! Pose-moi une question, je ferai de mon mieux.", "Salut ! Comment puis-je t'aider aujourd'hui ?"]),
     (["Comment tu t'appelles ?", "Comment t'appelles-tu ?", "Tu t'appelles comment ?", "C'est quoi ton nom ?",
       "Quel est ton nom ?"],
      ["Je m'appelle Alice.", "Je m'appelle Alice, je suis une petite intelligence artificielle."]),
-    (["Tu es qui ?", "Présente-toi.", "Qui êtes-vous ?", "Tu es quoi ?"],
+    (["Tu es qui ?", "Présente-toi.", "Qui êtes-vous ?", "Tu es quoi ?", "Tu es quoi", "T'es qui ?",
+      "Présente-toi s'il te plaît."],
      ["Je suis Alice, un petit modèle d'intelligence artificielle qui répond en français.",
       "Je m'appelle Alice. Je suis une intelligence artificielle, et j'essaie de répondre à tes questions."]),
     (["Comment ça va ?", "Ça va ?", "Comment vas-tu ?", "Tu vas bien ?"],
@@ -456,14 +735,28 @@ CONV = [
      ["Tant mieux ! Que puis-je faire pour toi ?", "Super ! As-tu une question pour moi ?"]),
     (["Merci", "Merci !", "Merci Alice", "Super, merci."],
      ["De rien !", "Avec plaisir !", "De rien, c'est un plaisir de t'aider."]),
-    (["Au revoir", "Au revoir !", "Bonne nuit", "À plus tard", "Salut, à bientôt !"],
+    (["Au revoir", "Au revoir !", "Bonne nuit", "À plus tard", "À bientôt !", "Bye", "Je dois y aller, au revoir."],
      ["Au revoir ! À bientôt.", "À bientôt !", "Bonne journée, et à bientôt !"]),
-    (["Qui t'a créée ?", "Qui t'a fabriquée ?", "D'où viens-tu ?"],
+    (["Qui t'a créée ?", "Qui t'a créé ?", "Qui t'a créé", "Qui t'a fabriquée ?", "D'où viens-tu ?",
+      "Qui t'a programmée ?", "Qui est ton créateur ?", "Tu viens d'où ?", "Qui t'a faite ?"],
      ["Je suis basée sur SmolLM2, un petit modèle créé par Hugging Face, puis adaptée pour parler français.",
       "Mon modèle de base, SmolLM2, a été créé par Hugging Face. On m'a ensuite entraînée à répondre en français."]),
     (["Que sais-tu faire ?", "Tu sais faire quoi ?", "À quoi sers-tu ?", "Comment peux-tu m'aider ?"],
      ["Je peux répondre à des questions simples, faire de petits calculs, traduire des mots et discuter un peu.",
       "Je réponds à des questions simples en français : culture générale, calcul, vocabulaire, traduction."]),
+    (["Tu es quel modèle ?", "Quel modèle es-tu ?", "Tu es basée sur quoi ?", "Tu es quelle IA ?",
+      "Tu utilises quel modèle ?"],
+     ["Je suis Alice, basée sur SmolLM2-135M, un petit modèle de 135 millions de paramètres créé par "
+      "Hugging Face, puis entraîné en français.",
+      "Je suis basée sur SmolLM2-135M, un tout petit modèle de langage. On m'a entraînée pour parler français."]),
+    (["C'est quoi une IA ?", "Une IA c'est quoi ?", "Qu'est-ce qu'une intelligence artificielle ?", "Une IA est quoi ?"],
+     ["Une IA, ou intelligence artificielle, est un programme informatique qui apprend à partir d'exemples "
+      "pour accomplir des tâches, comme répondre à des questions.",
+      "Une intelligence artificielle est un programme qui imite certaines capacités humaines, comme comprendre "
+      "et écrire du texte."]),
+    (["Qui est Léa ?", "C'est qui Léa ?", "Tu connais Paul ?", "Qui est Marc ?"],
+     ["Je ne sais pas de qui tu parles. Peux-tu m'en dire plus ?",
+      "Je ne connais pas cette personne. Peux-tu me donner plus de détails ?"]),
     (["Es-tu un humain ?", "Tu es un robot ?", "Es-tu une vraie personne ?"],
      ["Non, je suis une intelligence artificielle, un programme informatique.",
       "Je ne suis pas humaine : je suis Alice, une intelligence artificielle."]),
@@ -646,9 +939,15 @@ for fr_q, en_q, en_a in FACTS_EN:
 PIVOT = [p for p in PIVOT if norm(p[0]) not in EVAL_QUESTIONS]
 
 # ------------------------------------------------------------------ écriture
+def elide(text):
+    """« de » élidé devant une voyelle : d'œufs, d'oranges, d'euros."""
+    return re.sub(r"\b([Dd])e (?=[aeiouyéèêœAEIOUÉ])", r"\1'", text)
+
+
 def main():
     seen, rows, dropped = set(), [], 0
     for q, a in OUT:
+        q, a = elide(q), elide(a)
         if norm(q) in EVAL_QUESTIONS:
             dropped += 1
             continue
@@ -657,7 +956,13 @@ def main():
             continue
         seen.add(key)
         rows.append({"question": q, "answer": a})
+    # Sur Telegram on écrit souvent sans « ? » : une partie des questions est dupliquée sans.
+    for r in list(rows):
+        q = r["question"]
+        if q.endswith(" ?") and rng.random() < 0.25 and norm(q) not in EVAL_QUESTIONS:
+            rows.append({"question": q[:-2], "answer": r["answer"]})
     for fr_q, fr_a, en_q, en_a in PIVOT:
+        fr_q, fr_a = elide(fr_q), elide(fr_a)
         rows.append({"system": SYS_TRANSLATE, "question": fr_q, "answer": en_q})
         rows.append({"system": SYS_ANSWER, "question": en_q, "answer": en_a})
         rows.append({"system": SYS_REWRITE, "question": rewrite_input(fr_q, en_a), "answer": fr_a})

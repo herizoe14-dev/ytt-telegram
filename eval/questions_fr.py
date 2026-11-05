@@ -68,3 +68,27 @@ CASES_HELDOUT = [
     ("Qui es-tu ?", ["alice"], "conversation"),
     ("Merci beaucoup !", ["rien", "plaisir", "service"], "conversation"),
 ]
+
+# Troisième série : raisonnement en plusieurs étapes, jamais vue à l'entraînement.
+CASES_RAISONNEMENT = [
+    ("Léa a 8 ans. Dans 5 ans, quel âge aura-t-elle ?", ["13", "treize"], "raisonnement"),
+    ("Paul a 4 billes de plus que Léa. Léa a 6 billes. Combien de billes a Paul ?", ["10", "dix"], "raisonnement"),
+    ("Un paquet contient 6 biscuits. J'achète 3 paquets. Combien de biscuits ai-je ?", ["18", "dix-huit"], "raisonnement"),
+    ("J'ai 20 euros. J'achète un livre à 12 euros. Combien d'argent me reste-t-il ?", ["8", "huit"], "raisonnement"),
+    ("Tom a 5 pommes. Il en mange 2, puis il en achète 4. Combien de pommes a-t-il ?", ["7", "sept"], "raisonnement"),
+    ("Quel est le plus grand nombre : 47 ou 74 ?", ["74"], "raisonnement"),
+    ("Quel nombre vient après 39 ?", ["40", "quarante"], "raisonnement"),
+    ("Complète la suite : 2, 4, 6, 8, ...", ["10", "dix"], "raisonnement"),
+    ("Tous les oiseaux ont des plumes. Le moineau est un oiseau. Le moineau a-t-il des plumes ?", ["oui"], "raisonnement"),
+    ("Si aujourd'hui est lundi, quel jour serons-nous dans 3 jours ?", ["jeudi"], "raisonnement"),
+    ("Le film commence à 14 heures et dure 2 heures. À quelle heure finit-il ?", ["16", "seize"], "raisonnement"),
+    ("On partage 12 bonbons entre 4 enfants. Combien de bonbons reçoit chaque enfant ?", ["3", "trois"], "raisonnement"),
+    ("Le nombre 8 est-il pair ou impair ?", ["pair"], "raisonnement"),
+    ("Il y a 3 chats et 2 chiens dans la maison. Combien d'animaux y a-t-il ?", ["5", "cinq"], "raisonnement"),
+    ("Marc est plus rapide que Léo. Léo est plus rapide que Tim. Qui est le plus lent ?", ["tim"], "raisonnement"),
+    ("Une semaine a 7 jours. Combien de jours y a-t-il dans 2 semaines ?", ["14", "quatorze"], "raisonnement"),
+    ("Julie a 15 ans. Son frère a 3 ans de moins qu'elle. Quel âge a son frère ?", ["12", "douze"], "raisonnement"),
+    ("Je pose 3 livres sur une table, puis j'en enlève 1. Combien de livres reste-t-il sur la table ?", ["2", "deux"], "raisonnement"),
+    ("Est-ce que 15 est plus grand que 51 ?", ["non"], "raisonnement"),
+    ("Sam a 10 euros. Il gagne 5 euros, puis il dépense 3 euros. Combien d'euros a-t-il ?", ["12", "douze"], "raisonnement"),
+]
