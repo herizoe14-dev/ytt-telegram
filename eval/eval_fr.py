@@ -9,7 +9,7 @@
 
 Mesures :
 - correct  : la réponse contient la bonne réponse attendue (pour un nombre : le dernier
-             nombre de la réponse doit être le bon) ;
+             nombre de la réponse qui ne vient pas de la question doit être le bon) ;
 - français : la réponse contient plus de mots outils français qu'anglais ;
 - boucles  : la réponse répète la même ligne en boucle.
 """
@@ -55,11 +55,16 @@ def is_french(text):
     return sum(w in FR_WORDS for w in words) >= sum(w in EN_WORDS for w in words)
 
 
-def is_correct(text, answers):
+def is_correct(text, answers, question=""):
     t = norm(text)
-    if answers[0].isdigit():  # réponse chiffrée : le dernier nombre écrit doit être le bon
+    if answers[0].isdigit():
+        # réponse chiffrée : le dernier nombre écrit qui ne vient pas de la question doit
+        # être le bon (« 2 fois 7 font 14. Il y a 14 jours dans 2 semaines. » est juste,
+        # « 12 fois 4 font 56 » ne l'est pas)
+        given = set(re.findall(r"\d+", question))
         nums = re.findall(r"\d+", t)
-        return bool(nums) and nums[-1] == answers[0]
+        new = [n for n in nums if n not in given] or nums
+        return bool(new) and new[-1] == answers[0]
     return any(re.search(r"(?<![\w-])" + re.escape(norm(a)) + r"(?![\w-])", t) for a in answers)
 
 
@@ -85,7 +90,7 @@ if __name__ == "__main__":
         t0 = time.time()
         for q, answers, _cat in cases:
             a = fn(q)
-            c, f, l = is_correct(a, answers), is_french(a), loops(a)
+            c, f, l = is_correct(a, answers, q), is_french(a), loops(a)
             ok += c; fr += f; lp += l
             if args.verbose:
                 print(f"  {'✓' if c else '✗'} {q} -> {a.replace(chr(10), ' ')[:150]}")

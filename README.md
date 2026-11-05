@@ -11,7 +11,7 @@ Un modèle d'IA très léger, utilisable hors ligne sur un simple CPU.
 | Format | GGUF, quantification Q4_0 (~92 Mo) |
 | Paramètres | 135 millions |
 | Licence | Apache 2.0 |
-| SHA-256 | `280ea4d47271e8c883ec8a6ad3685d606574934a05c32c2c5323a2e4b576bc78` |
+| SHA-256 | `8b0b133c9031d904657c60048c140b800e537106f90e632b6ef229292d30ac62` |
 
 L'entraînement n'ajoute aucun paramètre : Alice a exactement la même architecture
 et le même poids que le modèle d'origine. Celui-ci n'est plus dans le dépôt ; pour
@@ -69,11 +69,11 @@ est lancé.
 ## Entraînement en français
 
 Le dossier `train/` contient tout ce qu'il faut pour refaire Alice à partir du
-modèle d'origine, sur un simple CPU (environ 1 h sur 4 cœurs) :
+modèle d'origine, sur un simple CPU (environ 1 h 30 sur 4 cœurs) :
 
 ```bash
 pip install -r train/requirements.txt
-python train/make_data_fr.py            # génère train/data_fr.jsonl (3 739 exemples)
+python train/make_data_fr.py            # génère train/data_fr.jsonl (7 000 exemples)
 python train/train_fr.py --base HuggingFaceTB/SmolLM2-135M-Instruct --out build/alice-fr --epochs 2
 python train/to_gguf.py build/alice-fr models/Alice-SmolLM2-135M-fr-Q4_0.gguf
 ```
@@ -81,9 +81,14 @@ python train/to_gguf.py build/alice-fr models/Alice-SmolLM2-135M-fr-Q4_0.gguf
 - **Données** (`make_data_fr.py`) : des exemples écrits à la main (culture générale,
   conversation, identité d'Alice) et produits par des gabarits vérifiés (calculs
   exacts, accords en genre et en nombre) : capitales, calcul, petits problèmes,
-  comparaisons, jours et mois, contraires, pluriels, traductions. Environ un quart des
-  exemples apprennent aussi les trois étapes du mode pivot (traduire en anglais,
-  répondre, réécrire en français).
+  comparaisons, jours et mois, contraires, pluriels, traductions.
+- **Raisonnement en étapes** : environ 2 500 problèmes dont la réponse pose chaque
+  étape avant le résultat (« D'abord, 7 moins 2 font 5. Ensuite, 5 plus 3 font 8. Elle a
+  8 pommes. ») : problèmes en deux étapes, « de plus que / de moins que », âges, argent,
+  heures, jours de la semaine, suites, comparaison de nombres, pair ou impair, partages,
+  petite logique (« Tous les chats sont des animaux… »), table de multiplication.
+- **Mode pivot** : environ 1 100 exemples apprennent aussi ses trois étapes (traduire
+  en anglais, répondre, réécrire en français).
 - **Entraînement** (`train_fr.py`) : affinage complet (2 époques, taux d'apprentissage
   5e-5), la perte ne porte que sur les réponses.
 - **Conversion** (`to_gguf.py`) : les poids affinés sont écrits en GGUF avec les
@@ -92,34 +97,38 @@ python train/to_gguf.py build/alice-fr models/Alice-SmolLM2-135M-fr-Q4_0.gguf
 
 ### Évaluation honnête
 
-Aucune question d'évaluation n'est dans les données d'entraînement : ni les questions,
-ni leurs nombres, ni leurs mots. En plus des 30 questions d'origine, une **deuxième
-série de 32 questions** (`--set heldout`) n'a servi qu'à la mesure finale.
+Aucune question d'évaluation n'est dans les données d'entraînement. Trois séries :
+les 30 questions d'origine (`--set eval`), 32 questions jamais vues (`--set heldout`)
+et 20 problèmes de raisonnement jamais vus (`--set raisonnement`).
 
-| Modèle et mode | 30 questions | 32 questions jamais vues | En français | Temps / question |
+| Modèle et mode | 30 questions | 32 jamais vues | 20 raisonnements | Temps / question |
 |---|---|---|---|---|
-| Origine, réglages de départ | 1/30 | 2/32 | 18/30 | ~1,5 s |
-| Origine, `direct` (consigne + exemples) | 2/30 | 3/32 | 30/30 | ~0,3 s |
-| Origine, `pivot` | 9/30 | 6/32 | 29/30 | ~2 s |
-| **Alice, `direct` (défaut)** | **11/30** | **12/32** | 30/30 | **~0,3 s** |
-| Alice, `pivot` | 10/30 | 4/32 | 30/30 | ~2 s |
+| Origine, réglages de départ | 1/30 | 2/32 | 3/20 | ~1,5 s |
+| Origine, `direct` (consigne + exemples) | 2/30 | 3/32 | 2/20 | ~0,3 s |
+| Origine, `pivot` | 10/30 | 6/32 | 3/20 | ~2 s |
+| Alice v2 (sans données de raisonnement) | 11/30 | 12/32 | 9/20 | ~0,3 s |
+| **Alice, `direct` (défaut)** | **14/30** | **14/32** | **14/20** | **~0,3 s** |
+| Alice, `pivot` | 8/30 | 5/32 | 2/20 | ~2 s |
 
-Pour un nombre, la réponse n'est comptée juste que si le dernier nombre écrit est le
-bon. Commande : `python eval/eval_fr.py --set heldout --verbose`.
+Pour un nombre, la réponse n'est comptée juste que si le dernier nombre écrit qui ne
+vient pas de la question est le bon. Commande :
+`python eval/eval_fr.py --set raisonnement --verbose`.
 
-Ce qu'Alice a appris : répondre toujours en français et dans une phrase correcte,
-poser les calculs (« 9 moins 3 font 6. Il lui reste 6 crayons. »), les problèmes
-simples, les comparaisons (« Zoé est la plus jeune. »), se présenter (« Je m'appelle
-Alice. ») et répondre aux salutations et aux remerciements.
+Ce qu'Alice a appris : répondre toujours en français, poser chaque étape d'un calcul
+(« 12 divisé par 4 égale 3. Chaque enfant reçoit 3 bonbons. »), les problèmes en deux
+étapes, les âges, l'argent, les heures, les comparaisons, pair ou impair, un peu de
+logique, se présenter (« Je m'appelle Alice. ») et répondre aux salutations.
 
 ### Limites
 
 - La culture générale reste faible : le modèle connaît beaucoup de choses en anglais
   (Tokyo, Rome…) mais les retrouve mal en français (« La capitale du Japon est
-  Paris. »). Le mode `pivot` aide parfois sur ces questions.
+  Paris. »).
 - Les noms propres restent parfois en anglais (« Lisbon », « Cairo »).
-- 135 millions de paramètres, c'est très peu : le calcul se trompe encore
-  (« 6 fois 3 font 24 ») et le vocabulaire jamais vu est souvent faux.
+- 135 millions de paramètres, c'est très peu : le modèle pose bien les étapes mais se
+  trompe parfois d'opération (« Il en mange 2 » devient « 5 plus 2 »), de calcul, ou
+  dans les suites et les jours (« dans 3 jours »). Le vocabulaire jamais vu est souvent faux.
+- Le mode `pivot` n'aide plus : le modèle entraîné répond mieux directement.
 - Le jeu de questions est petit : les chiffres donnent une tendance, pas une mesure
   précise. Pour beaucoup mieux, il faut un modèle plus grand et multilingue (0,5 à
   1 milliard de paramètres), au-delà de la limite de 100 Mo par fichier de GitHub.

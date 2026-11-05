@@ -31,7 +31,7 @@ from pathlib import Path
 MODELS = Path(__file__).parent / "models"
 MODEL_PATH = Path(os.environ.get("ALICE_MODEL", MODELS / "Alice-SmolLM2-135M-fr-Q4_0.gguf"))  # entraîné en français
 # Le modèle entraîné n'a plus besoin d'exemples dans la consigne (et répond mieux sans).
-FINE_TUNED = MODEL_PATH.name.startswith("Alice")
+FINE_TUNED = MODEL_PATH.name.lower().startswith("alice")
 
 # Réglages de génération retenus après évaluation (voir eval/eval_fr.py).
 GEN = dict(temperature=0, repeat_penalty=1.15)
