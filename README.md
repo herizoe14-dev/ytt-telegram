@@ -34,11 +34,25 @@ python chat.py                                          # mode interactif
 
    ```bash
    pip install -r requirements.txt
-   export TELEGRAM_BOT_TOKEN="ton_jeton"     # Windows (cmd) : set TELEGRAM_BOT_TOKEN=ton_jeton
+   export TELEGRAM_BOT_TOKEN="ton_jeton"     # ou mets-le dans un fichier .env (voir plus bas)
    python bot.py
    ```
 
 3. Ouvre ton bot dans Telegram et envoie `/start`.
+
+### Réglages enregistrés dans Supabase (facultatif)
+
+Les réglages `/mode` et `/debug` de chaque conversation sont stockés dans la table
+`user_settings` du projet Supabase **alice** : ils restent en place quand le bot redémarre.
+
+1. Dans Supabase : projet **alice** → *Project Settings* → *API Keys* → copie une
+   **clé secrète** (`sb_secret_...`).
+2. Copie `.env.example` en `.env` et remplis `TELEGRAM_BOT_TOKEN` et `SUPABASE_SECRET_KEY`
+   (`.env` est ignoré par git). Le bot charge ce fichier tout seul.
+
+La table a la sécurité RLS activée sans politique : seule la clé secrète y a accès, la
+clé publique est refusée. Ne partage jamais la clé secrète. Sans ces variables, le bot
+fonctionne quand même, avec des réglages en mémoire.
 
 Commandes du bot : `/mode pivot` (par défaut, plus exact), `/mode direct` (plus rapide),
 `/debug` (affiche les étapes en anglais). Le bot ne tourne que tant que `python bot.py`
