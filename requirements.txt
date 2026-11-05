@@ -1,1 +1,2 @@
 llama-cpp-python
+python-telegram-bot>=21,<23

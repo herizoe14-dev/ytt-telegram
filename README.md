@@ -26,6 +26,24 @@ python chat.py --debug "Combien font 9 plus 6 ?"        # montre les étapes en 
 python chat.py                                          # mode interactif
 ```
 
+## Tester dans Telegram
+
+1. Sur Telegram, écris à [@BotFather](https://t.me/BotFather), envoie `/newbot`
+   et suis les étapes. Il te donne un **jeton** (token) : garde-le secret.
+2. Sur ton ordinateur :
+
+   ```bash
+   pip install -r requirements.txt
+   export TELEGRAM_BOT_TOKEN="ton_jeton"     # Windows (cmd) : set TELEGRAM_BOT_TOKEN=ton_jeton
+   python bot.py
+   ```
+
+3. Ouvre ton bot dans Telegram et envoie `/start`.
+
+Commandes du bot : `/mode pivot` (par défaut, plus exact), `/mode direct` (plus rapide),
+`/debug` (affiche les étapes en anglais). Le bot ne tourne que tant que `python bot.py`
+est lancé.
+
 ## Amélioration du français sans entraînement
 
 Les poids du modèle ne sont pas modifiés. Tout se joue au moment de la génération :
