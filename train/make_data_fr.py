@@ -16,7 +16,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "eval"))
-from questions_fr import CASES, CASES_HELDOUT, CASES_RAISONNEMENT  # noqa: E402
+from questions_fr import CASES, CASES_HELDOUT, CASES_NIVEAUX, CASES_RAISONNEMENT  # noqa: E402
 
 rng = random.Random(0)
 OUT = []
@@ -47,7 +47,7 @@ def norm(s):
     return re.sub(r"\W+", " ", "".join(c for c in s if not unicodedata.combining(c))).strip()
 
 
-EVAL_QUESTIONS = {norm(q) for q, _, _ in CASES + CASES_HELDOUT + CASES_RAISONNEMENT}
+EVAL_QUESTIONS = {norm(q) for q, _, _ in CASES + CASES_HELDOUT + CASES_RAISONNEMENT + CASES_NIVEAUX}
 
 # ------------------------------------------------------------------ capitales
 CAPITALS = [  # (complément « de … », capitale) — sans les pays de l'évaluation

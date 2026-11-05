@@ -23,7 +23,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import chat  # noqa: E402
-from questions_fr import CASES, CASES_HELDOUT, CASES_RAISONNEMENT  # noqa: E402
+from questions_fr import CASES, CASES_HELDOUT, CASES_NIVEAUX, CASES_RAISONNEMENT  # noqa: E402
 
 FR_WORDS = set("le la les un une des est et de du que qui il elle je tu nous vous ils en au aux pour pas sont avec dans sur ce cette a y ne plus".split())
 EN_WORDS = set("the is are and of to in that it you for with this was be on as have not".split())
@@ -76,12 +76,13 @@ def loops(text):
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--modes", default="direct,pivot")
-    ap.add_argument("--set", choices=["eval", "heldout", "raisonnement"], default="eval",
+    ap.add_argument("--set", choices=["eval", "heldout", "raisonnement", "niveaux"], default="eval",
                     help="eval : les 30 questions d'origine ; heldout : 32 questions jamais vues à "
                          "l'entraînement ; raisonnement : 20 problèmes en plusieurs étapes jamais vus")
     ap.add_argument("--verbose", action="store_true")
     args = ap.parse_args()
-    cases = {"eval": CASES, "heldout": CASES_HELDOUT, "raisonnement": CASES_RAISONNEMENT}[args.set]
+    cases = {"eval": CASES, "heldout": CASES_HELDOUT, "raisonnement": CASES_RAISONNEMENT,
+             "niveaux": CASES_NIVEAUX}[args.set]
     n = len(cases)
     print(f"modèle : {chat.MODEL_PATH.name}, série : {args.set}")
     for name in args.modes.split(","):

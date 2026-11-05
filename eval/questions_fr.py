@@ -92,3 +92,28 @@ CASES_RAISONNEMENT = [
     ("Est-ce que 15 est plus grand que 51 ?", ["non"], "raisonnement"),
     ("Sam a 10 euros. Il gagne 5 euros, puis il dépense 3 euros. Combien d'euros a-t-il ?", ["12", "douze"], "raisonnement"),
 ]
+
+# Test par niveaux, du plus simple au plus complexe (jamais vu à l'entraînement).
+# La catégorie indique le niveau : 1 = une opération … 5 = plusieurs étapes combinées.
+CASES_NIVEAUX = [
+    ("Combien font 7 plus 8 ?", ["15"], "1 - une opération"),
+    ("Combien font 9 moins 4 ?", ["5"], "1 - une opération"),
+    ("Combien font 5 fois 6 ?", ["30"], "1 - une opération"),
+    ("Quel nombre vient après 59 ?", ["60"], "1 - une opération"),
+    ("Nina a 11 billes. Elle en perd 4. Combien lui en reste-t-il ?", ["7"], "2 - problème simple"),
+    ("Un sac contient 5 pommes. J'achète 4 sacs. Combien de pommes ai-je ?", ["20"], "2 - problème simple"),
+    ("On partage 15 gâteaux entre 3 amis. Combien de gâteaux reçoit chaque ami ?", ["5"], "2 - problème simple"),
+    ("Hugo a 9 ans. Dans 4 ans, quel âge aura-t-il ?", ["13"], "2 - problème simple"),
+    ("Léo a 6 cartes. Il en gagne 5, puis il en perd 3. Combien de cartes a-t-il ?", ["8"], "3 - deux étapes"),
+    ("J'ai 30 euros. J'achète un jeu à 12 euros et un livre à 9 euros. Combien d'argent me reste-t-il ?", ["9"], "3 - deux étapes"),
+    ("Emma a 3 ans de plus que Tom. Tom a 7 ans. Quel âge aura Emma dans 2 ans ?", ["12"], "3 - deux étapes"),
+    ("Une boîte contient 4 crayons. J'ai 3 boîtes et je donne 2 crayons. Combien de crayons me reste-t-il ?", ["10"], "3 - deux étapes"),
+    ("Anna est plus grande que Lou. Lou est plus grande que Mia. Mia est plus grande que Zoé. Qui est la plus grande ?", ["anna"], "4 - logique"),
+    ("Tous les poissons ont des nageoires. La carpe est un poisson. La carpe a-t-elle des nageoires ?", ["oui"], "4 - logique"),
+    ("Si aujourd'hui est jeudi, quel jour serons-nous dans 4 jours ?", ["lundi"], "4 - logique"),
+    ("Complète la suite : 5, 10, 15, 20, ...", ["25"], "4 - logique"),
+    ("Paul a 12 bonbons. Il en donne la moitié à sa sœur, puis il en mange 2. Combien lui en reste-t-il ?", ["4"], "5 - complexe"),
+    ("Un train part à 9 heures. Le trajet dure 3 heures, puis il attend 1 heure. À quelle heure repart-il ?", ["13"], "5 - complexe"),
+    ("Léa a 2 fois plus de billes que Max. Max a 6 billes. Combien de billes ont-ils ensemble ?", ["18"], "5 - complexe"),
+    ("Un fermier a 3 vaches et 4 poules. Combien de pattes y a-t-il en tout ?", ["20"], "5 - complexe"),
+]
