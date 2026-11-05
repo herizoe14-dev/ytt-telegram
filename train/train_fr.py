@@ -4,7 +4,7 @@ Le modèle garde exactement la même architecture et le même nombre de paramèt
 une fois converti en GGUF Q4_0 (train/to_gguf.py), il pèse le même poids que
 l'original (~92 Mo).
 
-    pip install torch transformers safetensors
+    pip install -r train/requirements.txt
     python train/make_data_fr.py
     python train/train_fr.py --out build/alice-fr      # ~1 h sur 4 cœurs CPU
     python train/to_gguf.py build/alice-fr models/Alice-SmolLM2-135M-fr-Q4_0.gguf
@@ -56,7 +56,7 @@ def main():
     ap.add_argument("--base", default="HuggingFaceTB/SmolLM2-135M-Instruct")
     ap.add_argument("--data", default=str(Path(__file__).with_name("data_fr.jsonl")))
     ap.add_argument("--out", required=True)
-    ap.add_argument("--epochs", type=float, default=3)
+    ap.add_argument("--epochs", type=float, default=2)
     ap.add_argument("--bs", type=int, default=16)
     ap.add_argument("--lr", type=float, default=5e-5)
     ap.add_argument("--max-steps", type=int, default=0, help="arrêt anticipé (test de vitesse)")

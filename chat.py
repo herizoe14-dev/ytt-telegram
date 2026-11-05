@@ -1,22 +1,26 @@
-"""Alice : chat en français avec SmolLM2-135M-Instruct (GGUF Q4_0), sans entraînement.
+"""Alice : chat en français avec SmolLM2-135M-Instruct (GGUF Q4_0).
+
+Par défaut, Alice utilise models/Alice-SmolLM2-135M-fr-Q4_0.gguf : le même
+modèle, affiné sur des exemples français (voir train/), de même taille.
+Sans entraînement, les techniques ci-dessous améliorent déjà le modèle d'origine.
 
 Le modèle a appris surtout en anglais : il « sait » des choses en anglais mais
 raisonne très mal directement en français. Ce script améliore ses réponses
 françaises uniquement au moment de l'inférence :
 
-- mode « pivot » (par défaut) : la question est traduite en anglais, le modèle
+- mode « pivot » : la question est traduite en anglais, le modèle
   y répond en anglais, puis la réponse est réécrite en français en réutilisant
   les mots de la question d'origine ;
-- mode « direct » : une seule étape, avec une consigne système et des exemples
-  en français (plus rapide, toujours en français, mais moins exact) ;
+- mode « direct » (par défaut) : une seule étape, avec une consigne système
+  (et des exemples en français pour le modèle d'origine) ;
 - dans les deux modes : décodage glouton (temperature 0) et pénalité de
   répétition, ce qui supprime les réponses qui tournent en boucle.
 
 Usage :
     pip install -r requirements.txt
     python chat.py "Quelle est la capitale de l'Italie ?"
-    python chat.py --mode direct "Bonjour !"
-    python chat.py --debug "Combien font 9 plus 6 ?"   # montre les étapes en anglais
+    python chat.py --mode pivot "Bonjour !"
+    python chat.py --mode pivot --debug "Combien font 9 plus 6 ?"   # montre les étapes en anglais
     python chat.py                                      # mode interactif
 """
 import argparse
@@ -25,7 +29,10 @@ from functools import lru_cache
 from pathlib import Path
 
 MODELS = Path(__file__).parent / "models"
-MODEL_PATH = Path(os.environ.get("ALICE_MODEL", MODELS / "SmolLM2-135M-Instruct-Q4_0.gguf"))
+BASE_MODEL = MODELS / "SmolLM2-135M-Instruct-Q4_0.gguf"            # modèle d'origine
+MODEL_PATH = Path(os.environ.get("ALICE_MODEL", MODELS / "Alice-SmolLM2-135M-fr-Q4_0.gguf"))  # entraîné en français
+# Le modèle entraîné n'a plus besoin d'exemples dans la consigne (et répond mieux sans).
+FINE_TUNED = MODEL_PATH.name.startswith("Alice")
 
 # Réglages de génération retenus après évaluation (voir eval/eval_fr.py).
 GEN = dict(temperature=0, repeat_penalty=1.15)
@@ -66,7 +73,9 @@ SHOTS_DIRECT = [
 ]
 
 
-def answer_direct(question, shots=True):
+def answer_direct(question, shots=None):
+    if shots is None:
+        shots = not FINE_TUNED
     return _chat(_few_shot(SYS_DIRECT, SHOTS_DIRECT if shots else [], question))
 
 
@@ -119,7 +128,7 @@ def answer_pivot(question, debug=False):
     return fr_answer
 
 
-def ask(question, mode="pivot", debug=False):
+def ask(question, mode="direct", debug=False):
     if mode == "direct":
         return answer_direct(question)
     return answer_pivot(question, debug=debug)
@@ -128,7 +137,7 @@ def ask(question, mode="pivot", debug=False):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Chat en français avec Alice (SmolLM2-135M).")
     parser.add_argument("question", nargs="*", help="question (sinon mode interactif)")
-    parser.add_argument("--mode", choices=["pivot", "direct"], default="pivot")
+    parser.add_argument("--mode", choices=["direct", "pivot"], default="direct")
     parser.add_argument("--debug", action="store_true", help="affiche les étapes intermédiaires en anglais")
     args = parser.parse_args()
 

@@ -1,12 +1,13 @@
 """Évalue Alice sur 30 questions simples en français.
 
-    python eval/eval_fr.py                 # compare les trois modes
+    python eval/eval_fr.py                 # modes direct et pivot du modèle entraîné
     python eval/eval_fr.py --verbose       # affiche chaque réponse
     python eval/eval_fr.py --set heldout   # 32 questions jamais vues à l'entraînement
-    ALICE_MODEL=models/autre.gguf python eval/eval_fr.py   # un autre modèle
+    ALICE_MODEL=models/SmolLM2-135M-Instruct-Q4_0.gguf python eval/eval_fr.py --modes origine,direct,pivot
 
 Mesures :
-- correct  : la réponse contient la bonne réponse attendue (contrôle automatique, assez indulgent) ;
+- correct  : la réponse contient la bonne réponse attendue (pour un nombre : le dernier
+             nombre de la réponse doit être le bon) ;
 - français : la réponse contient plus de mots outils français qu'anglais ;
 - boucles  : la réponse répète la même ligne en boucle.
 """
@@ -34,9 +35,10 @@ def baseline(question):
 
 
 MODES = {
-    "origine": baseline,
+    "origine": baseline,  # à lancer avec ALICE_MODEL=models/SmolLM2-135M-Instruct-Q4_0.gguf
     "direct": lambda q: chat.ask(q, "direct"),
-    "direct0": lambda q: chat.answer_direct(q, shots=False),
+    "direct0": lambda q: chat.answer_direct(q, shots=False),  # sans exemples
+    "direct5": lambda q: chat.answer_direct(q, shots=True),   # avec 5 exemples
     "pivot": lambda q: chat.ask(q, "pivot"),
 }
 
@@ -53,6 +55,9 @@ def is_french(text):
 
 def is_correct(text, answers):
     t = norm(text)
+    if answers[0].isdigit():  # réponse chiffrée : le dernier nombre écrit doit être le bon
+        nums = re.findall(r"\d+", t)
+        return bool(nums) and nums[-1] == answers[0]
     return any(re.search(r"(?<![\w-])" + re.escape(norm(a)) + r"(?![\w-])", t) for a in answers)
 
 
@@ -63,7 +68,7 @@ def loops(text):
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
-    ap.add_argument("--modes", default="origine,direct,pivot")
+    ap.add_argument("--modes", default="direct,pivot")
     ap.add_argument("--set", choices=["eval", "heldout"], default="eval",
                     help="eval : les 30 questions d'origine ; heldout : 32 questions jamais vues à l'entraînement")
     ap.add_argument("--verbose", action="store_true")

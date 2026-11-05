@@ -1,4 +1,4 @@
-"""Bot Telegram pour tester Alice (SmolLM2-135M, en local, sans GPU).
+"""Bot Telegram pour tester Alice (SmolLM2-135M entraîné en français, en local, sans GPU).
 
 1. Crée un bot avec @BotFather sur Telegram et copie le jeton (token).
 2. Lance :
@@ -14,9 +14,9 @@ Sans elles, les réglages restent en mémoire.
 
 Commandes :
     /start          présentation
-    /mode pivot     réponses plus exactes (~2 s, par défaut)
-    /mode direct    réponses plus rapides, moins exactes
-    /debug          affiche/masque les étapes intermédiaires en anglais
+    /mode direct    réponses rapides (par défaut)
+    /mode pivot     passe par l'anglais (~2 s), parfois meilleur en culture générale
+    /debug          en mode pivot, affiche/masque les étapes en anglais
 """
 import asyncio
 import contextlib
@@ -53,12 +53,12 @@ def _generate(question, mode, debug):
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "Bonjour, je suis Alice, un tout petit modèle d'IA (135 millions de paramètres) "
-        "qui tourne en local.\n\n"
-        "Pose-moi une question simple en français, par exemple :\n"
-        "« Quelle est la capitale de l'Italie ? »\n\n"
-        "/mode pivot : réponses plus exactes (par défaut)\n"
-        "/mode direct : réponses plus rapides\n"
-        "/debug : voir mes étapes de réflexion en anglais\n\n"
+        "entraîné en français, qui tourne en local.\n\n"
+        "Pose-moi une question simple, par exemple :\n"
+        "« Léa a 9 bonbons. Elle en mange 4. Combien lui en reste-t-il ? »\n\n"
+        "/mode direct : réponses rapides (par défaut)\n"
+        "/mode pivot : je réfléchis en anglais, parfois mieux en culture générale\n"
+        "/debug : en mode pivot, voir mes étapes en anglais\n\n"
         "Je fais souvent des erreurs : je suis un modèle expérimental."
     )
 

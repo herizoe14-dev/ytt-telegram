@@ -20,7 +20,7 @@ import httpx
 
 log = logging.getLogger("alice.settings")
 
-DEFAULTS = {"mode": "pivot", "debug": False}
+DEFAULTS = {"mode": "direct", "debug": False}
 
 
 class SettingsStore:

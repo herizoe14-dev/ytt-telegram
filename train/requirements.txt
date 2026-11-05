@@ -1,0 +1,5 @@
+torch
+transformers
+safetensors
+gguf
+llama-cpp-python
