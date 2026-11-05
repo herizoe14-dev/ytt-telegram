@@ -522,6 +522,129 @@ for _ in range(80):
         add(f"What is {a} plus {b}?", f"{a} plus {b} is {a + b}.")
 
 
+
+# ------------------------------------------------------------------ étapes du mode pivot
+# Le modèle sait beaucoup plus de choses en anglais qu'en français. Pour que le
+# mode pivot reste utilisable après l'entraînement, on lui apprend aussi ses trois
+# étapes : traduire la question en anglais, répondre en anglais, puis réécrire la
+# réponse en français en recopiant l'information de la réponse anglaise.
+sys.path.insert(0, str(ROOT))
+from chat import SYS_ANSWER, SYS_REWRITE, SYS_TRANSLATE, rewrite_input  # noqa: E402
+
+PIVOT = []  # (question fr, réponse fr, question en, réponse en)
+
+EN_CAPITALS = {
+    "du Portugal": ("Portugal", "Lisbon"), "de la Belgique": ("Belgium", "Brussels"), "de la Suisse": ("Switzerland", "Bern"),
+    "de l'Autriche": ("Austria", "Vienna"), "des Pays-Bas": ("the Netherlands", "Amsterdam"),
+    "du Royaume-Uni": ("the United Kingdom", "London"), "de l'Irlande": ("Ireland", "Dublin"),
+    "de la Grèce": ("Greece", "Athens"), "de la Pologne": ("Poland", "Warsaw"), "de la Suède": ("Sweden", "Stockholm"),
+    "de la Norvège": ("Norway", "Oslo"), "du Danemark": ("Denmark", "Copenhagen"), "de la Finlande": ("Finland", "Helsinki"),
+    "de la Hongrie": ("Hungary", "Budapest"), "de la République tchèque": ("the Czech Republic", "Prague"),
+    "de la Roumanie": ("Romania", "Bucharest"), "de la Bulgarie": ("Bulgaria", "Sofia"), "de la Croatie": ("Croatia", "Zagreb"),
+    "de la Serbie": ("Serbia", "Belgrade"), "de la Turquie": ("Turkey", "Ankara"), "de la Chine": ("China", "Beijing"),
+    "de l'Inde": ("India", "New Delhi"), "de la Corée du Sud": ("South Korea", "Seoul"), "du Viêt Nam": ("Vietnam", "Hanoi"),
+    "de la Thaïlande": ("Thailand", "Bangkok"), "de l'Indonésie": ("Indonesia", "Jakarta"),
+    "des Philippines": ("the Philippines", "Manila"), "de l'Australie": ("Australia", "Canberra"),
+    "de la Nouvelle-Zélande": ("New Zealand", "Wellington"), "des États-Unis": ("the United States", "Washington"),
+    "du Mexique": ("Mexico", "Mexico City"), "du Brésil": ("Brazil", "Brasilia"), "de l'Argentine": ("Argentina", "Buenos Aires"),
+    "du Chili": ("Chile", "Santiago"), "du Pérou": ("Peru", "Lima"), "de la Colombie": ("Colombia", "Bogota"),
+    "du Venezuela": ("Venezuela", "Caracas"), "de Cuba": ("Cuba", "Havana"), "du Maroc": ("Morocco", "Rabat"),
+    "de l'Algérie": ("Algeria", "Algiers"), "de la Tunisie": ("Tunisia", "Tunis"), "du Sénégal": ("Senegal", "Dakar"),
+    "du Mali": ("Mali", "Bamako"), "du Kenya": ("Kenya", "Nairobi"), "de l'Éthiopie": ("Ethiopia", "Addis Ababa"),
+    "du Nigeria": ("Nigeria", "Abuja"), "de Madagascar": ("Madagascar", "Antananarivo"), "du Cameroun": ("Cameroon", "Yaounde"),
+    "de l'Iran": ("Iran", "Tehran"), "de l'Irak": ("Iraq", "Baghdad"), "de l'Arabie saoudite": ("Saudi Arabia", "Riyadh"),
+    "du Liban": ("Lebanon", "Beirut"), "du Pakistan": ("Pakistan", "Islamabad"), "de l'Afghanistan": ("Afghanistan", "Kabul"),
+    "de l'Islande": ("Iceland", "Reykjavik"), "du Luxembourg": ("Luxembourg", "Luxembourg"),
+}
+for de, cap in CAPITALS:
+    en_c, en_cap = EN_CAPITALS[de]
+    PIVOT.append((f"Quelle est la capitale {de} ?", f"La capitale {de} est {cap}.",
+                  f"What is the capital of {en_c}?", f"The capital of {en_c} is {en_cap}."))
+
+EN_OP = {"plus": ("plus", lambda a, b: a + b), "moins": ("minus", lambda a, b: a - b),
+         "fois": ("times", lambda a, b: a * b)}
+for _ in range(150):
+    w = rng.choice(list(EN_OP))
+    a, b = rng.randint(1, 30), rng.randint(1, 30)
+    if w == "moins" and b > a:
+        a, b = b, a
+    if w == "fois":
+        a, b = rng.randint(1, 10), rng.randint(1, 10)
+    if (a, b) in BAD_PAIRS:
+        continue
+    en, f = EN_OP[w]
+    PIVOT.append((f"Combien font {a} {w} {b} ?", f"{a} {w} {b} font {f(a, b)}.",
+                  f"What is {a} {en} {b}?", f"{a} {en} {b} is {f(a, b)}."))
+
+EN_THINGS = {"pomme": "apples", "bille": "marbles", "bonbon": "candies", "crayon": "pencils", "fleur": "flowers",
+             "ballon": "balloons", "carte": "cards", "biscuit": "cookies", "jouet": "toys", "orange": "oranges"}
+for _ in range(150):
+    name, g = rng.choice(NAMES)
+    pro, en_pro = ("Elle", "She") if g == "f" else ("Il", "He")
+    sing, plur, _food = rng.choice([t for t in THINGS if t[0] in EN_THINGS])
+    a = rng.randint(3, 20)
+    b = rng.randint(1, a - 1)
+    if (a, b) in BAD_PAIRS:
+        continue
+    if rng.random() < 0.5:
+        PIVOT.append((f"{name} a {a} {plur}. {pro} en donne {b}. Combien lui en reste-t-il ?",
+                      f"{a} moins {b} font {a - b}. Il lui reste {form(a - b, sing, plur)}.",
+                      f"{name} has {a} {EN_THINGS[sing]}. {en_pro} gives away {b}. How many does {en_pro.lower()} have left?",
+                      f"{a} minus {b} is {a - b}. {en_pro} has {a - b} left."))
+    else:
+        t = "a-t-elle" if g == "f" else "a-t-il"
+        PIVOT.append((f"{name} a {a} {plur}. {pro} en achète {b}. Combien de {plur} {t} maintenant ?",
+                      f"{a} plus {b} font {a + b}. {pro} a maintenant {a + b} {plur}.",
+                      f"{name} has {a} {EN_THINGS[sing]}. {en_pro} buys {b} more. How many does {en_pro.lower()} have now?",
+                      f"{a} plus {b} is {a + b}. {en_pro} has {a + b} {EN_THINGS[sing]} now."))
+
+EN_DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+for i, d in enumerate(DAYS):
+    if d in ("mercredi", "vendredi"):
+        continue  # questions « demain » de l'évaluation
+    PIVOT.append((f"Si aujourd'hui est {d}, quel jour serons-nous demain ?",
+                  f"Si aujourd'hui est {d}, demain nous serons {DAYS[(i + 1) % 7]}.",
+                  f"If today is {EN_DAYS[i]}, what day is tomorrow?", f"If today is {EN_DAYS[i]}, tomorrow is {EN_DAYS[(i + 1) % 7]}."))
+
+# Connaissances traduites à la main (sous-ensemble de FACTS)
+FACTS_EN = [
+    ("Combien y a-t-il de secondes dans une minute ?", "How many seconds are in a minute?", "There are 60 seconds in a minute."),
+    ("Combien y a-t-il de saisons dans une année ?", "How many seasons are in a year?", "There are 4 seasons in a year."),
+    ("De quelle couleur est une banane mûre ?", "What color is a ripe banana?", "A ripe banana is yellow."),
+    ("De quelle couleur est le lait ?", "What color is milk?", "Milk is white."),
+    ("De quelle couleur est le charbon ?", "What color is coal?", "Coal is black."),
+    ("De quelle couleur est le sang ?", "What color is blood?", "Blood is red."),
+    ("Quel animal fait « meuh » ?", "Which animal says 'moo'?", "The cow says 'moo'."),
+    ("Quel animal fait « cocorico » ?", "Which animal says 'cock-a-doodle-doo'?", "The rooster says 'cock-a-doodle-doo'."),
+    ("Quel animal fait « coin-coin » ?", "Which animal says 'quack'?", "The duck says 'quack'."),
+    ("Combien de pattes a une fourmi ?", "How many legs does an ant have?", "An ant has 6 legs."),
+    ("Combien de pattes a une vache ?", "How many legs does a cow have?", "A cow has 4 legs."),
+    ("Combien de pattes a une poule ?", "How many legs does a hen have?", "A hen has 2 legs."),
+    ("Quel est le plus grand animal du monde ?", "What is the largest animal in the world?", "The largest animal in the world is the blue whale."),
+    ("Quel est l'animal terrestre le plus rapide ?", "What is the fastest land animal?", "The fastest land animal is the cheetah."),
+    ("Quel animal fabrique du miel ?", "Which animal makes honey?", "The bee makes honey."),
+    ("Quel est le plus grand océan du monde ?", "What is the largest ocean in the world?", "The largest ocean in the world is the Pacific Ocean."),
+    ("Quelle est la plus haute montagne du monde ?", "What is the highest mountain in the world?", "The highest mountain in the world is Mount Everest."),
+    ("Quel fleuve traverse Paris ?", "Which river flows through Paris?", "The Seine flows through Paris."),
+    ("Quelle langue parle-t-on au Brésil ?", "What language is spoken in Brazil?", "Portuguese is spoken in Brazil."),
+    ("Quelle est la monnaie du Japon ?", "What is the currency of Japan?", "The currency of Japan is the yen."),
+    ("Qu'est-ce que le Soleil ?", "What is the Sun?", "The Sun is a star."),
+    ("Combien y a-t-il de planètes dans le système solaire ?", "How many planets are in the solar system?", "There are 8 planets in the solar system."),
+    ("Quelle planète est appelée la planète rouge ?", "Which planet is called the red planet?", "Mars is called the red planet."),
+    ("Quelle planète a de grands anneaux ?", "Which planet has large rings?", "Saturn has large rings."),
+    ("À quelle température l'eau bout-elle ?", "At what temperature does water boil?", "Water boils at 100 degrees Celsius."),
+    ("Combien de côtés a un triangle ?", "How many sides does a triangle have?", "A triangle has 3 sides."),
+    ("Combien de côtés a un hexagone ?", "How many sides does a hexagon have?", "A hexagon has 6 sides."),
+    ("Qui a peint la Joconde ?", "Who painted the Mona Lisa?", "Leonardo da Vinci painted the Mona Lisa."),
+    ("Qui a écrit « Les Misérables » ?", "Who wrote 'Les Misérables'?", "Victor Hugo wrote 'Les Misérables'."),
+    ("Que mange une vache ?", "What does a cow eat?", "A cow eats grass."),
+]
+FACTS_FR = dict(FACTS)
+for fr_q, en_q, en_a in FACTS_EN:
+    PIVOT.append((fr_q, FACTS_FR[fr_q], en_q, en_a))
+
+PIVOT = [p for p in PIVOT if norm(p[0]) not in EVAL_QUESTIONS]
+
 # ------------------------------------------------------------------ écriture
 def main():
     seen, rows, dropped = set(), [], 0
@@ -534,12 +657,17 @@ def main():
             continue
         seen.add(key)
         rows.append({"question": q, "answer": a})
+    for fr_q, fr_a, en_q, en_a in PIVOT:
+        rows.append({"system": SYS_TRANSLATE, "question": fr_q, "answer": en_q})
+        rows.append({"system": SYS_ANSWER, "question": en_q, "answer": en_a})
+        rows.append({"system": SYS_REWRITE, "question": rewrite_input(fr_q, en_a), "answer": fr_a})
     rng.shuffle(rows)
     path = Path(__file__).with_name("data_fr.jsonl")
     with open(path, "w", encoding="utf-8") as f:
         for r in rows:
             f.write(json.dumps(r, ensure_ascii=False) + "\n")
-    print(f"{len(rows)} exemples écrits dans {path.name} ({dropped} questions d'évaluation écartées)")
+    print(f"{len(rows)} exemples écrits dans {path.name} dont {3 * len(PIVOT)} pour le mode pivot "
+          f"({dropped} questions d'évaluation écartées)")
 
 
 if __name__ == "__main__":

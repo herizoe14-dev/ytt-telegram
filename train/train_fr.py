@@ -70,7 +70,8 @@ def main():
 
     rows = [json.loads(l) for l in open(a.data, encoding="utf-8")]
     # 3 fois sur 4 avec la consigne d'Alice (comme le bot), sinon la consigne par défaut du modèle
-    data = [encode(tok, r, SYS_DIRECT if rng.random() < 0.75 else None) for r in rows]
+    # (les exemples des étapes du mode pivot ont leur propre consigne)
+    data = [encode(tok, r, r.get("system") or (SYS_DIRECT if rng.random() < 0.75 else None)) for r in rows]
     steps_per_epoch = math.ceil(len(data) / a.bs)
     total = a.max_steps or int(steps_per_epoch * a.epochs)
     warmup = max(1, total // 20)

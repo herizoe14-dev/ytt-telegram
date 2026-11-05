@@ -101,10 +101,13 @@ SHOTS_REWRITE = [
 ]
 
 
+def rewrite_input(question, english_answer):
+    return f"Question : {question}\nEnglish answer: {english_answer}"
+
+
 def _rewrite_prompt(question, english_answer):
-    fmt = "Question : {}\nEnglish answer: {}"
-    pairs = [(fmt.format(q, en), fr) for q, en, fr in SHOTS_REWRITE]
-    return _few_shot(SYS_REWRITE, pairs, fmt.format(question, english_answer))
+    pairs = [(rewrite_input(q, en), fr) for q, en, fr in SHOTS_REWRITE]
+    return _few_shot(SYS_REWRITE, pairs, rewrite_input(question, english_answer))
 
 
 def answer_pivot(question, debug=False):
