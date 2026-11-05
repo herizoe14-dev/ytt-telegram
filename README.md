@@ -11,7 +11,7 @@ Un modèle d'IA très léger, utilisable hors ligne sur un simple CPU.
 | Format | GGUF, quantification Q4_0 (~92 Mo) |
 | Paramètres | 135 millions |
 | Licence | Apache 2.0 |
-| SHA-256 | `8b0b133c9031d904657c60048c140b800e537106f90e632b6ef229292d30ac62` |
+| SHA-256 | `66f94ea78aa9317f9f347377b4350e02981786816d90ccda8614be0d3a67579f` |
 
 L'entraînement n'ajoute aucun paramètre : Alice a exactement la même architecture
 et le même poids que le modèle d'origine. Celui-ci n'est plus dans le dépôt ; pour
@@ -73,8 +73,8 @@ modèle d'origine, sur un simple CPU (environ 1 h 30 sur 4 cœurs) :
 
 ```bash
 pip install -r train/requirements.txt
-python train/make_data_fr.py            # génère train/data_fr.jsonl (7 000 exemples)
-python train/train_fr.py --base HuggingFaceTB/SmolLM2-135M-Instruct --out build/alice-fr --epochs 2
+python train/make_data_fr.py            # génère train/data_fr.jsonl (9 382 exemples)
+python train/train_fr.py --base HuggingFaceTB/SmolLM2-135M-Instruct --out build/alice-fr --epochs 1.6
 python train/to_gguf.py build/alice-fr models/Alice-SmolLM2-135M-fr-Q4_0.gguf
 ```
 
@@ -86,7 +86,9 @@ python train/to_gguf.py build/alice-fr models/Alice-SmolLM2-135M-fr-Q4_0.gguf
   étape avant le résultat (« D'abord, 7 moins 2 font 5. Ensuite, 5 plus 3 font 8. Elle a
   8 pommes. ») : problèmes en deux étapes, « de plus que / de moins que », âges, argent,
   heures, jours de la semaine, suites, comparaison de nombres, pair ou impair, partages,
-  petite logique (« Tous les chats sont des animaux… »), table de multiplication.
+  petite logique (« Tous les chats sont des animaux… »), tables de multiplication et de
+  division, la moitié / le tiers / le quart, « 2 fois plus que », problèmes en trois
+  étapes, pattes et roues (« une vache a 4 pattes… »), horaires et âges en deux étapes.
 - **Mode pivot** : environ 1 100 exemples apprennent aussi ses trois étapes (traduire
   en anglais, répondre, réécrire en français).
 - **Entraînement** (`train_fr.py`) : affinage complet (2 époques, taux d'apprentissage
@@ -107,8 +109,19 @@ et 20 problèmes de raisonnement jamais vus (`--set raisonnement`).
 | Origine, `direct` (consigne + exemples) | 2/30 | 3/32 | 2/20 | ~0,3 s |
 | Origine, `pivot` | 10/30 | 6/32 | 3/20 | ~2 s |
 | Alice v2 (sans données de raisonnement) | 11/30 | 12/32 | 9/20 | ~0,3 s |
-| **Alice, `direct` (défaut)** | **14/30** | **14/32** | **14/20** | **~0,3 s** |
-| Alice, `pivot` | 8/30 | 5/32 | 2/20 | ~2 s |
+| Alice v3 (raisonnement en étapes) | 14/30 | 14/32 | 14/20 | ~0,3 s |
+| **Alice v4, `direct` (défaut)** | **13/30** | **14/32** | **13/20** | **~0,3 s** |
+
+Test par niveaux, du plus simple au plus complexe (`--set niveaux`), et contrôle de
+généralisation formulé autrement que les données d'entraînement (`--set niveaux2`) :
+
+| | Niveaux (20) | Généralisation (10) |
+|---|---|---|
+| Alice v3 | 10/20 | 0/10 |
+| **Alice v4** | **12/20** | **3/10** |
+
+La v4 pose correctement les étapes (« D'abord, 12 plus 9 font 21 euros dépensés.
+Ensuite, 30 moins 21… ») ; la plupart de ses erreurs restantes sont des fautes de calcul.
 
 Pour un nombre, la réponse n'est comptée juste que si le dernier nombre écrit qui ne
 vient pas de la question est le bon. Commande :
