@@ -64,7 +64,8 @@ def is_correct(text, answers, question=""):
         given = set(re.findall(r"\d+", question))
         nums = re.findall(r"\d+", t)
         new = [n for n in nums if n not in given] or nums
-        return bool(new) and new[-1] == answers[0]
+        # (ou, si la bonne réponse figure aussi dans la question, le dernier nombre tout court)
+        return bool(nums) and (new[-1] == answers[0] or (answers[0] in given and nums[-1] == answers[0]))
     return any(re.search(r"(?<![\w-])" + re.escape(norm(a)) + r"(?![\w-])", t) for a in answers)
 
 
