@@ -1,8 +1,8 @@
-"""Alice : chat en français avec Qwen2.5-0.5B-Instruct affiné en français (GGUF Q4_0).
+"""Alice : chat en français (modèle GGUF Q4_0 affiné en français).
 
-Par défaut, Alice utilise models/Alice-Qwen2.5-0.5B-fr-Q4_0-0000N-of-00004.gguf :
-Qwen2.5-0.5B-Instruct affiné sur des exemples français (voir train/), découpé en
-4 morceaux de moins de 100 Mo que llama.cpp recharge ensemble.
+Par défaut, Alice utilise models/Alice-1.5B-fr-Q4_0.gguf (1,5 milliard de paramètres,
+affiné sur des exemples et des conversations en français, voir train/). Le mode
+interactif et le bot Telegram gardent la conversation en mémoire.
 Sans entraînement, les techniques ci-dessous améliorent déjà le modèle d'origine.
 
 Le modèle a appris surtout en anglais : il « sait » des choses en anglais mais
@@ -30,8 +30,11 @@ from functools import lru_cache
 from pathlib import Path
 
 MODELS = Path(__file__).parent / "models"
-# premier morceau du modèle : llama.cpp charge les suivants automatiquement
-MODEL_PATH = Path(os.environ.get("ALICE_MODEL", MODELS / "Alice-Qwen2.5-0.5B-fr-Q4_0-00001-of-00004.gguf"))
+# Le modèle est rangé en morceaux de moins de 100 Mo (limite de GitHub) :
+# models/Alice-1.5B-fr-Q4_0.gguf.part01, .part02… ; ils sont réassemblés au premier lancement.
+MODEL_PATH = Path(os.environ.get("ALICE_MODEL", MODELS / "Alice-1.5B-fr-Q4_0.gguf"))
+# Longueur de contexte (jetons) : assez pour une longue conversation.
+N_CTX = int(os.environ.get("ALICE_CTX", 4096))
 # Le modèle entraîné n'a plus besoin d'exemples dans la consigne (et répond mieux sans).
 FINE_TUNED = MODEL_PATH.name.lower().startswith("alice")
 
@@ -39,11 +42,26 @@ FINE_TUNED = MODEL_PATH.name.lower().startswith("alice")
 GEN = dict(temperature=0, repeat_penalty=1.15)
 
 
+def assemble(path=MODEL_PATH):
+    """Réassemble le modèle à partir de ses morceaux (.part01, .part02…) s'il n'existe pas encore."""
+    parts = sorted(path.parent.glob(path.name + ".part*"))
+    if path.exists() or not parts:
+        return path
+    tmp = path.with_suffix(".tmp")
+    with open(tmp, "wb") as out:
+        for p in parts:
+            with open(p, "rb") as f:
+                while chunk := f.read(1 << 24):
+                    out.write(chunk)
+    tmp.replace(path)
+    return path
+
+
 @lru_cache(maxsize=1)
 def load_model():
     from llama_cpp import Llama
 
-    return Llama(model_path=str(MODEL_PATH), n_ctx=2048, verbose=False)
+    return Llama(model_path=str(assemble()), n_ctx=N_CTX, verbose=False)
 
 
 def _chat(messages, max_tokens=128):
@@ -74,10 +92,12 @@ SHOTS_DIRECT = [
 ]
 
 
-def answer_direct(question, shots=None):
+def answer_direct(question, shots=None, history=None):
+    """history : liste [(question, réponse), …] des échanges précédents de la conversation."""
     if shots is None:
         shots = not FINE_TUNED
-    return _chat(_few_shot(SYS_DIRECT, SHOTS_DIRECT if shots else [], question))
+    pairs = (SHOTS_DIRECT if shots else []) + list(history or [])
+    return _chat(_few_shot(SYS_DIRECT, pairs, question), max_tokens=256)
 
 
 # ---------------------------------------------------------------- mode pivot
@@ -129,14 +149,14 @@ def answer_pivot(question, debug=False):
     return fr_answer
 
 
-def ask(question, mode="direct", debug=False):
+def ask(question, mode="direct", debug=False, history=None):
     if mode == "direct":
-        return answer_direct(question)
+        return answer_direct(question, history=history)
     return answer_pivot(question, debug=debug)
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Chat en français avec Alice (Qwen2.5-0.5B affiné).")
+    parser = argparse.ArgumentParser(description="Chat en français avec Alice.")
     parser.add_argument("question", nargs="*", help="question (sinon mode interactif)")
     parser.add_argument("--mode", choices=["direct", "pivot"], default="direct")
     parser.add_argument("--debug", action="store_true", help="affiche les étapes intermédiaires en anglais")
@@ -145,11 +165,16 @@ if __name__ == "__main__":
     if args.question:
         print(ask(" ".join(args.question), args.mode, args.debug))
     else:
-        print("Tape ta question (Ctrl+C pour quitter).")
+        print("Discute avec Alice (Ctrl+C pour quitter, /nouveau pour oublier la conversation).")
+        history = []
         while True:
             try:
-                q = input("> ")
+                q = input("> ").strip()
             except (EOFError, KeyboardInterrupt):
                 break
-            if q.strip():
-                print(ask(q, args.mode, args.debug))
+            if q == "/nouveau":
+                history = []
+            elif q:
+                a = ask(q, args.mode, args.debug, history=history)
+                print(a)
+                history = (history + [(q, a)])[-12:]

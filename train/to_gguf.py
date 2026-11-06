@@ -10,6 +10,7 @@ passer sous la limite de 100 Mo par fichier de GitHub ; llama.cpp les recharge
 automatiquement quand on lui donne le premier morceau.
 
     python train/to_gguf.py <dossier_hf> <sortie.gguf> --ref <référence.gguf> [--split-mb 95] [--tied]
+        [--name Alice --system "Tu es Alice…"] [--parts-mb 95]
 """
 import argparse
 import os
@@ -44,13 +45,25 @@ def gguf_name(hf):
     return f"blk.{parts[2]}.{LAYER['.'.join(parts[3:-1])]}.{parts[-1]}"
 
 
+QWEN_SYSTEM = "You are Qwen, created by Alibaba Cloud. You are a helpful assistant."
+IDENTITY = {}  # rempli par --name / --system : nom et consigne par défaut écrits dans le modèle
+
+
 def copy_metadata(r, w):
     for key, f in r.fields.items():
         if key.startswith(SKIP_KEYS) or key == "general.architecture":
             continue
+        if IDENTITY.get("name") and key in ("general.name", "general.basename", "general.finetune"):
+            continue
         vtype = f.types[0]
         sub = f.types[-1] if vtype == GGUFValueType.ARRAY else None
-        w.add_key_value(key, f.contents(), vtype, sub_type=sub)
+        value = f.contents()
+        if key == "tokenizer.chat_template" and IDENTITY.get("system"):
+            value = value.replace(QWEN_SYSTEM, IDENTITY["system"])  # consigne par défaut du modèle
+        w.add_key_value(key, value, vtype, sub_type=sub)
+    if IDENTITY.get("name"):
+        w.add_name(IDENTITY["name"])
+        w.add_basename(IDENTITY["name"])
 
 
 def write_f16(hf_dir, out, ref, drop_output=False):
@@ -121,9 +134,14 @@ if __name__ == "__main__":
     ap.add_argument("--ref", required=True, help="GGUF du modèle de base (pour les métadonnées)")
     ap.add_argument("--type", default="Q4_0")
     ap.add_argument("--split-mb", type=float, default=0, help="découpe en morceaux de cette taille (Mo)")
+    ap.add_argument("--name", help="nom écrit dans le modèle (general.name), ex. Alice")
+    ap.add_argument("--system", help="consigne par défaut du modèle de chat (remplace celle de Qwen)")
+    ap.add_argument("--parts-mb", type=float, default=0,
+                    help="découpe aussi le fichier final en morceaux bruts .part01, .part02… de cette taille")
     ap.add_argument("--tied", action="store_true",
                     help="n'écrit pas output.weight (poids liés à token_embd) : fichier plus léger")
     a = ap.parse_args()
+    IDENTITY.update(name=a.name, system=a.system)
     with tempfile.TemporaryDirectory() as d:
         f16 = os.path.join(d, "f16.gguf")
         write_f16(a.hf_dir, f16, a.ref, drop_output=a.tied)
@@ -133,8 +151,15 @@ if __name__ == "__main__":
             split(q, a.out, a.split_mb)
         else:
             quantize(f16, a.out, a.type, a.type if a.tied else None)
+    if a.parts_mb:  # morceaux bruts, réassemblés par chat.assemble()
+        size, i = int(a.parts_mb * 1e6), 0
+        with open(a.out, "rb") as f:
+            while chunk := f.read(size):
+                i += 1
+                with open(f"{a.out}.part{i:02d}", "wb") as out:
+                    out.write(chunk)
     folder = os.path.dirname(os.path.abspath(a.out))
     stem = os.path.basename(a.out)[:-5]
     for f in sorted(os.listdir(folder)):
-        if f.startswith(stem) and f.endswith(".gguf"):
+        if f.startswith(stem) and (f.endswith(".gguf") or ".part" in f):
             print(f"{f} : {os.path.getsize(os.path.join(folder, f)) / 1e6:.1f} Mo")

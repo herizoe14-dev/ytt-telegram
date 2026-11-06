@@ -1,3 +1,7 @@
 __pycache__/
 *.pyc
 .env
+
+# modèle réassemblé à partir de ses morceaux
+models/*.gguf
+models/*.tmp

@@ -1,4 +1,4 @@
-"""Bot Telegram pour tester Alice (Qwen2.5-0.5B entraîné en français, en local, sans GPU).
+"""Bot Telegram pour tester Alice (modèle entraîné en français, en local, sans GPU).
 
 1. Crée un bot avec @BotFather sur Telegram et copie le jeton (token).
 2. Lance :
@@ -14,6 +14,7 @@ Sans elles, les réglages restent en mémoire.
 
 Commandes :
     /start          présentation
+    /nouveau        oublie la conversation et recommence
     /mode direct    réponses rapides (par défaut)
     /mode pivot     passe par l'anglais (~2 s), parfois meilleur en culture générale
     /debug          en mode pivot, affiche/masque les étapes en anglais
@@ -38,29 +39,48 @@ log = logging.getLogger("alice")
 # Le modèle n'est pas fait pour être appelé par plusieurs threads à la fois.
 _model_lock = asyncio.Lock()
 MAX_QUESTION_LEN = 500
+# Mémoire de la conversation (en mémoire vive, par discussion) : derniers échanges gardés.
+MAX_TURNS = 12
+MAX_HISTORY_CHARS = 6000
+HISTORY: dict[int, list[tuple[str, str]]] = {}
 store: SettingsStore = SettingsStore()  # recréé au démarrage dans post_init
 
 
-def _generate(question, mode, debug):
+def _history(chat_id):
+    """Derniers échanges, dans la limite de MAX_TURNS et de MAX_HISTORY_CHARS."""
+    h = HISTORY.get(chat_id, [])[-MAX_TURNS:]
+    while h and sum(len(q) + len(a) for q, a in h) > MAX_HISTORY_CHARS:
+        h = h[1:]
+    return h
+
+
+def _generate(question, mode, debug, history):
     """Appelle le modèle ; renvoie (réponse, étapes de debug)."""
     buf = io.StringIO()
     with contextlib.redirect_stdout(buf):
-        answer = chat.ask(question, mode=mode, debug=debug)
+        answer = chat.ask(question, mode=mode, debug=debug, history=history if mode == "direct" else None)
     steps = "\n".join(l.strip() for l in buf.getvalue().splitlines() if l.strip())
     return answer or "…", steps
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "Bonjour, je suis Alice, un petit modèle d'IA (500 millions de paramètres) "
+        "Bonjour, je suis Alice, un modèle d'IA (1,5 milliard de paramètres) "
         "entraîné en français, qui tourne en local.\n\n"
         "Pose-moi une question simple, par exemple :\n"
         "« Léa a 9 bonbons. Elle en mange 4. Combien lui en reste-t-il ? »\n\n"
+        "Je me souviens de notre conversation : dis-moi ton prénom, je le retiendrai.\n\n"
+        "/nouveau : recommencer une conversation (j'oublie tout)\n"
         "/mode direct : réponses rapides (par défaut)\n"
         "/mode pivot : je réfléchis en anglais, parfois mieux en culture générale\n"
         "/debug : en mode pivot, voir mes étapes en anglais\n\n"
         "Je fais souvent des erreurs : je suis un modèle expérimental."
     )
+
+
+async def new_conversation(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    HISTORY.pop(update.effective_chat.id, None)
+    await update.message.reply_text("C'est noté, on recommence à zéro. De quoi veux-tu parler ?")
 
 
 async def set_mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -90,23 +110,34 @@ async def on_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"Ta question est trop longue (maximum {MAX_QUESTION_LEN} caractères).")
         return
 
-    settings = await store.get(update.effective_chat.id)
+    chat_id = update.effective_chat.id
+    settings = await store.get(chat_id)
     mode = settings["mode"]
     debug = settings["debug"] and mode == "pivot"
     await context.bot.send_chat_action(update.effective_chat.id, ChatAction.TYPING)
 
     try:
         async with _model_lock:
-            answer, steps = await asyncio.to_thread(_generate, question, mode, debug)
+            answer, steps = await asyncio.to_thread(_generate, question, mode, debug, _history(chat_id))
     except Exception:
         log.exception("Erreur pendant la génération")
         await update.message.reply_text("Désolée, une erreur est survenue. Réessaie.")
         return
 
     log.info("[%s] %r -> %r", mode, question, answer)
+    HISTORY[chat_id] = (HISTORY.get(chat_id, []) + [(question, answer)])[-MAX_TURNS:]
     if debug and steps:
         answer = f"{answer}\n\n— étapes —\n{steps}"
     await update.message.reply_text(answer)
+
+
+async def on_error(update, context):
+    """Coupures réseau passagères : une ligne dans le journal au lieu d'une longue trace."""
+    from telegram.error import NetworkError
+    if isinstance(context.error, NetworkError):
+        log.warning("Réseau Telegram : %s (nouvelle tentative automatique)", context.error)
+    else:
+        log.error("Erreur inattendue", exc_info=context.error)
 
 
 async def post_init(app):
@@ -148,7 +179,9 @@ def main():
 
     app = Application.builder().token(token).post_init(post_init).post_shutdown(post_shutdown).build()
     app.add_handler(CommandHandler(["start", "aide", "help"], start))
+    app.add_handler(CommandHandler(["nouveau", "reset"], new_conversation))
     app.add_handler(CommandHandler("mode", set_mode))
+    app.add_error_handler(on_error)
     app.add_handler(CommandHandler("debug", toggle_debug))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, on_message))
 
