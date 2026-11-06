@@ -3,3 +3,4 @@ transformers
 safetensors
 gguf
 llama-cpp-python
+peft

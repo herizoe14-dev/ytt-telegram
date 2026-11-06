@@ -1,4 +1,4 @@
-"""Bot Telegram pour tester Alice (SmolLM2-135M entraîné en français, en local, sans GPU).
+"""Bot Telegram pour tester Alice (Qwen2.5-0.5B entraîné en français, en local, sans GPU).
 
 1. Crée un bot avec @BotFather sur Telegram et copie le jeton (token).
 2. Lance :
@@ -52,7 +52,7 @@ def _generate(question, mode, debug):
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "Bonjour, je suis Alice, un tout petit modèle d'IA (135 millions de paramètres) "
+        "Bonjour, je suis Alice, un petit modèle d'IA (500 millions de paramètres) "
         "entraîné en français, qui tourne en local.\n\n"
         "Pose-moi une question simple, par exemple :\n"
         "« Léa a 9 bonbons. Elle en mange 4. Combien lui en reste-t-il ? »\n\n"

@@ -4,7 +4,7 @@
     python eval/eval_fr.py --verbose       # affiche chaque réponse
     python eval/eval_fr.py --set heldout   # 32 questions jamais vues à l'entraînement
     python eval/eval_fr.py --set raisonnement   # 20 problèmes en plusieurs étapes, jamais vus
-    ALICE_MODEL=chemin/vers/SmolLM2-135M-Instruct-Q4_0.gguf python eval/eval_fr.py --modes origine,direct,pivot
+    ALICE_MODEL=chemin/vers/qwen2.5-0.5b-instruct-q4_0.gguf python eval/eval_fr.py --modes direct0   # modèle de base
                                            # modèle d'origine (à télécharger, voir README)
 
 Mesures :
@@ -37,7 +37,7 @@ def baseline(question):
 
 
 MODES = {
-    "origine": baseline,  # pour le modèle d'origine (voir ci-dessus)
+    "origine": baseline,  # réglages de départ, sans consigne
     "direct": lambda q: chat.ask(q, "direct"),
     "direct0": lambda q: chat.answer_direct(q, shots=False),  # sans exemples
     "direct5": lambda q: chat.answer_direct(q, shots=True),   # avec 5 exemples

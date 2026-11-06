@@ -1,7 +1,8 @@
-"""Alice : chat en français avec SmolLM2-135M-Instruct (GGUF Q4_0).
+"""Alice : chat en français avec Qwen2.5-0.5B-Instruct affiné en français (GGUF Q4_0).
 
-Par défaut, Alice utilise models/Alice-SmolLM2-135M-fr-Q4_0.gguf : le même
-modèle, affiné sur des exemples français (voir train/), de même taille.
+Par défaut, Alice utilise models/Alice-Qwen2.5-0.5B-fr-Q4_0-0000N-of-00004.gguf :
+Qwen2.5-0.5B-Instruct affiné sur des exemples français (voir train/), découpé en
+4 morceaux de moins de 100 Mo que llama.cpp recharge ensemble.
 Sans entraînement, les techniques ci-dessous améliorent déjà le modèle d'origine.
 
 Le modèle a appris surtout en anglais : il « sait » des choses en anglais mais
@@ -29,7 +30,8 @@ from functools import lru_cache
 from pathlib import Path
 
 MODELS = Path(__file__).parent / "models"
-MODEL_PATH = Path(os.environ.get("ALICE_MODEL", MODELS / "Alice-SmolLM2-135M-fr-Q4_0.gguf"))  # entraîné en français
+# premier morceau du modèle : llama.cpp charge les suivants automatiquement
+MODEL_PATH = Path(os.environ.get("ALICE_MODEL", MODELS / "Alice-Qwen2.5-0.5B-fr-Q4_0-00001-of-00004.gguf"))
 # Le modèle entraîné n'a plus besoin d'exemples dans la consigne (et répond mieux sans).
 FINE_TUNED = MODEL_PATH.name.lower().startswith("alice")
 
@@ -134,7 +136,7 @@ def ask(question, mode="direct", debug=False):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Chat en français avec Alice (SmolLM2-135M).")
+    parser = argparse.ArgumentParser(description="Chat en français avec Alice (Qwen2.5-0.5B affiné).")
     parser.add_argument("question", nargs="*", help="question (sinon mode interactif)")
     parser.add_argument("--mode", choices=["direct", "pivot"], default="direct")
     parser.add_argument("--debug", action="store_true", help="affiche les étapes intermédiaires en anglais")

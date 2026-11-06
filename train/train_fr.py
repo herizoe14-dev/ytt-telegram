@@ -1,13 +1,8 @@
-"""Affine SmolLM2-135M-Instruct sur le jeu français (train/data_fr.jsonl), sur CPU.
+"""Affine un petit modèle (Qwen2.5-0.5B-Instruct par défaut, ou SmolLM2) sur le jeu français, sur CPU.
 
-Le modèle garde exactement la même architecture et le même nombre de paramètres :
-une fois converti en GGUF Q4_0 (train/to_gguf.py), il pèse le même poids que
-l'original (~92 Mo).
-
-    pip install -r train/requirements.txt
-    python train/make_data_fr.py
-    python train/train_fr.py --out build/alice-fr      # ~1 h sur 4 cœurs CPU
-    python train/to_gguf.py build/alice-fr models/Alice-SmolLM2-135M-fr-Q4_0.gguf
+Le modèle garde la même architecture et le même nombre de paramètres. Avec --lora,
+seuls de petits adaptateurs sont entraînés puis fusionnés dans le modèle.
+Recette complète d'Alice : voir le README (section « Entraînement en français »).
 """
 import argparse
 import json
@@ -53,7 +48,7 @@ def batches(data, bs, rng):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--base", default="HuggingFaceTB/SmolLM2-135M-Instruct")
+    ap.add_argument("--base", default="Qwen/Qwen2.5-0.5B-Instruct")
     ap.add_argument("--data", default=str(Path(__file__).with_name("data_fr.jsonl")))
     ap.add_argument("--out", required=True)
     ap.add_argument("--epochs", type=float, default=2)
