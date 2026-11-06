@@ -5,9 +5,11 @@ accords en genre et en nombre). Les questions d'évaluation (eval/questions_fr.p
 les deux séries) sont exclues, ainsi que leurs nombres et leurs mots, pour que
 les scores mesurent une vraie généralisation.
 
-    python train/make_data_fr.py
+    python train/make_data_fr.py                      # pour Qwen2.5-0.5B (par défaut)
+    ALICE_BASE=smollm2 python train/make_data_fr.py   # pour SmolLM2-135M
 """
 import json
+import os
 import random
 import re
 import sys
@@ -19,6 +21,13 @@ sys.path.insert(0, str(ROOT / "eval"))
 from questions_fr import CASES, CASES_HELDOUT, CASES_NIVEAUX, CASES_NIVEAUX2, CASES_RAISONNEMENT  # noqa: E402
 
 rng = random.Random(0)
+
+# Modèle de base (réponses d'Alice sur son identité) : ALICE_BASE=smollm2 ou qwen2.5
+BASES = {
+    "smollm2": {"nom": "SmolLM2", "complet": "SmolLM2-135M", "taille": "135 millions", "auteur": "Hugging Face"},
+    "qwen2.5": {"nom": "Qwen2.5", "complet": "Qwen2.5-0.5B", "taille": "500 millions", "auteur": "Alibaba Cloud"},
+}
+B = BASES[os.environ.get("ALICE_BASE", "qwen2.5")]
 OUT = []
 
 
@@ -864,11 +873,168 @@ for d in range(2, 11):  # table de division complète
         if (d * q, d) not in BAD_PAIRS:
             add(f"Combien font {d * q} divisé par {d} ?", f"{d * q} divisé par {d} égale {q}.")
 
+# ------------------------------------------------------------------ définitions (v5)
+# « C'est quoi un briquet ? », « Le citron » : définitions courtes écrites à la main.
+# (article indéfini, article défini, nom, définition)
+DEFS = [
+    ("un", "le", "briquet", "un petit objet qui sert à faire du feu"),
+    ("un", "le", "citron", "un fruit jaune au goût acide"),
+    ("une", "la", "pomme", "un fruit rond, rouge, jaune ou vert, qui pousse sur un pommier"),
+    ("une", "la", "banane", "un fruit long et jaune, à la chair douce"),
+    ("une", "la", "fraise", "un petit fruit rouge et sucré"),
+    ("une", "la", "carotte", "un légume orange qui pousse sous la terre"),
+    ("une", "la", "tomate", "un fruit rouge qu'on mange souvent en salade"),
+    ("un", "le", "riz", "une céréale en petits grains, très mangée à Madagascar et en Asie"),
+    ("un", "le", "pain", "un aliment fait avec de la farine, de l'eau et du sel, cuit au four"),
+    ("un", "le", "fromage", "un aliment fabriqué avec du lait"),
+    ("un", "le", "chocolat", "un aliment sucré fabriqué avec des fèves de cacao"),
+    ("un", "le", "miel", "un liquide sucré fabriqué par les abeilles"),
+    ("un", "le", "lait", "une boisson blanche produite par la vache et d'autres mammifères"),
+    ("un", "le", "café", "une boisson chaude faite avec des grains de café grillés"),
+    ("un", "le", "thé", "une boisson faite avec des feuilles infusées dans l'eau chaude"),
+    ("une", "la", "voiture", "un véhicule à quatre roues avec un moteur"),
+    ("un", "le", "vélo", "un véhicule à deux roues qu'on fait avancer avec des pédales"),
+    ("un", "l'", "avion", "un véhicule qui vole dans le ciel grâce à ses ailes et ses moteurs"),
+    ("un", "le", "bateau", "un véhicule qui flotte et se déplace sur l'eau"),
+    ("un", "le", "train", "un véhicule qui roule sur des rails et tire des wagons"),
+    ("une", "la", "fusée", "un engin très puissant qui peut aller dans l'espace"),
+    ("un", "le", "téléphone", "un appareil qui sert à parler à distance et à envoyer des messages"),
+    ("un", "l'", "ordinateur", "une machine qui calcule, stocke des informations et fait tourner des programmes"),
+    ("une", "la", "télévision", "un appareil qui affiche des images et des émissions"),
+    ("un", "le", "réfrigérateur", "un appareil qui garde les aliments au froid"),
+    ("une", "la", "lampe", "un objet qui produit de la lumière"),
+    ("une", "l'", "horloge", "un objet qui indique l'heure"),
+    ("une", "la", "clé", "un petit objet en métal qui sert à ouvrir une serrure"),
+    ("un", "le", "parapluie", "un objet qu'on ouvre au-dessus de la tête pour se protéger de la pluie"),
+    ("un", "le", "stylo", "un objet qui sert à écrire avec de l'encre"),
+    ("un", "le", "crayon", "un objet en bois qui sert à écrire ou à dessiner"),
+    ("un", "le", "livre", "un ensemble de pages imprimées et reliées qu'on lit"),
+    ("un", "le", "cahier", "un ensemble de feuilles reliées sur lesquelles on écrit"),
+    ("des", "les", "ciseaux", "un outil à deux lames qui sert à couper"),
+    ("un", "le", "marteau", "un outil qui sert à enfoncer des clous"),
+    ("un", "le", "couteau", "un outil avec une lame qui sert à couper"),
+    ("une", "la", "fourchette", "un couvert avec des dents qui sert à piquer les aliments"),
+    ("une", "la", "cuillère", "un couvert creux qui sert à manger la soupe ou à remuer"),
+    ("une", "l'", "assiette", "un plat plat ou creux dans lequel on mange"),
+    ("un", "le", "verre", "un récipient dans lequel on boit"),
+    ("une", "la", "chaise", "un meuble sur lequel on s'assoit"),
+    ("une", "la", "table", "un meuble avec un plateau posé sur des pieds"),
+    ("un", "le", "lit", "un meuble sur lequel on dort"),
+    ("une", "la", "maison", "un bâtiment dans lequel on habite"),
+    ("une", "l'", "école", "un lieu où les enfants apprennent avec des enseignants"),
+    ("un", "l'", "hôpital", "un lieu où l'on soigne les malades et les blessés"),
+    ("une", "la", "ville", "un endroit où beaucoup de gens vivent, avec des rues et des bâtiments"),
+    ("un", "le", "pays", "un territoire avec ses frontières, ses habitants et son gouvernement"),
+    ("une", "la", "montagne", "une très grande élévation de terrain"),
+    ("une", "la", "rivière", "un cours d'eau qui coule jusqu'à un fleuve ou à la mer"),
+    ("une", "la", "mer", "une grande étendue d'eau salée"),
+    ("une", "la", "forêt", "un grand espace couvert d'arbres"),
+    ("un", "le", "désert", "une région très sèche où il pleut très peu"),
+    ("une", "l'", "île", "une terre entourée d'eau de tous les côtés"),
+    ("un", "le", "volcan", "une montagne d'où peut sortir de la lave brûlante"),
+    ("un", "le", "soleil", "l'étoile autour de laquelle tourne la Terre ; il nous donne lumière et chaleur"),
+    ("une", "la", "lune", "le satellite naturel de la Terre, qu'on voit souvent la nuit"),
+    ("une", "l'", "étoile", "une énorme boule de gaz très chaude qui brille dans le ciel"),
+    ("une", "la", "planète", "un grand astre qui tourne autour d'une étoile, comme la Terre autour du Soleil"),
+    ("un", "le", "nuage", "un amas de petites gouttes d'eau dans le ciel"),
+    ("une", "la", "pluie", "de l'eau qui tombe des nuages"),
+    ("une", "la", "neige", "de l'eau gelée qui tombe du ciel en flocons blancs"),
+    ("un", "l'", "arc-en-ciel", "un arc de couleurs qui apparaît quand le soleil éclaire la pluie"),
+    ("un", "l'", "arbre", "une grande plante avec un tronc, des branches et des feuilles"),
+    ("une", "la", "fleur", "la partie colorée d'une plante, qui donne ensuite des fruits ou des graines"),
+    ("une", "la", "graine", "une petite partie d'une plante d'où peut naître une nouvelle plante"),
+    ("un", "le", "chat", "un petit animal domestique à quatre pattes qui miaule"),
+    ("un", "le", "chien", "un animal domestique à quatre pattes qui aboie, souvent fidèle à son maître"),
+    ("un", "le", "lion", "un grand félin d'Afrique, appelé le roi des animaux"),
+    ("un", "l'", "éléphant", "le plus grand animal terrestre, avec une trompe et des défenses"),
+    ("une", "la", "baleine", "un énorme mammifère qui vit dans la mer"),
+    ("un", "le", "lémurien", "un animal de Madagascar, proche du singe, avec une longue queue"),
+    ("un", "le", "caméléon", "un lézard qui peut changer de couleur"),
+    ("un", "le", "zébu", "un bœuf avec une bosse sur le dos, très présent à Madagascar"),
+    ("une", "l'", "abeille", "un insecte qui butine les fleurs et fabrique du miel"),
+    ("un", "le", "papillon", "un insecte avec de grandes ailes colorées"),
+    ("un", "le", "serpent", "un reptile sans pattes au corps long"),
+    ("un", "l'", "oiseau", "un animal avec des plumes, un bec et des ailes"),
+    ("un", "le", "poisson", "un animal qui vit dans l'eau et respire avec des branchies"),
+    ("un", "le", "mammifère", "un animal dont la femelle nourrit ses petits avec son lait"),
+    ("un", "l'", "insecte", "un petit animal à six pattes, comme la fourmi ou l'abeille"),
+    ("un", "le", "médecin", "une personne qui soigne les malades"),
+    ("un", "l'", "enseignant", "une personne qui fait la classe et aide les élèves à apprendre"),
+    ("un", "le", "boulanger", "une personne qui fait le pain"),
+    ("un", "l'", "agriculteur", "une personne qui cultive la terre ou élève des animaux"),
+    ("un", "le", "pompier", "une personne qui éteint les incendies et porte secours"),
+    ("une", "la", "famille", "un groupe de personnes liées, comme les parents et les enfants"),
+    ("un", "l'", "ami", "une personne qu'on aime bien et avec qui on partage des moments"),
+    ("un", "le", "cœur", "l'organe qui pompe le sang dans tout le corps"),
+    ("un", "le", "cerveau", "l'organe qui nous permet de penser, de bouger et de ressentir"),
+    ("un", "le", "poumon", "l'organe qui nous permet de respirer"),
+    ("un", "le", "nombre", "une idée qui sert à compter ou à mesurer, comme 3 ou 100"),
+    ("une", "l'", "addition", "une opération qui réunit deux nombres, comme 2 plus 3 font 5"),
+    ("une", "la", "soustraction", "une opération qui enlève un nombre à un autre, comme 5 moins 2 font 3"),
+    ("une", "la", "multiplication", "une addition répétée, comme 3 fois 4 font 12"),
+    ("une", "la", "division", "une opération qui partage un nombre en parts égales, comme 12 divisé par 3 égale 4"),
+    ("un", "le", "triangle", "une figure qui a trois côtés"),
+    ("un", "le", "cercle", "une figure toute ronde"),
+    ("une", "l'", "heure", "une durée de soixante minutes"),
+    ("une", "la", "semaine", "une durée de sept jours"),
+    ("un", "le", "mois", "une partie de l'année, d'environ trente jours"),
+    ("une", "l'", "année", "une durée de douze mois, ou 365 jours"),
+    ("une", "l'", "eau", "un liquide transparent, indispensable à la vie"),
+    ("un", "le", "feu", "une flamme qui produit de la chaleur et de la lumière"),
+    ("un", "l'", "air", "le mélange de gaz que nous respirons"),
+    ("une", "l'", "électricité", "une énergie qui fait fonctionner les lampes et les appareils"),
+    ("un", "l'", "argent", "ce qui sert à acheter des choses, sous forme de pièces ou de billets"),
+    ("une", "la", "musique", "un art qui assemble des sons de façon agréable"),
+    ("un", "le", "jeu", "une activité qu'on fait pour s'amuser"),
+    ("un", "le", "sport", "une activité physique, comme le football ou la course"),
+    ("un", "le", "football", "un sport où deux équipes essaient de mettre un ballon dans le but adverse avec les pieds"),
+    ("une", "la", "langue", "un moyen de communiquer avec des mots, comme le français ou le malgache"),
+    ("un", "le", "mot", "un ensemble de lettres qui a un sens"),
+    ("une", "la", "phrase", "une suite de mots qui a un sens, qui commence par une majuscule et finit par un point"),
+    ("un", "l'", "internet", "un immense réseau qui relie des ordinateurs du monde entier"),
+    ("un", "le", "robot", "une machine qui peut faire des tâches toute seule"),
+    ("une", "l'", "intelligence artificielle",
+     "un programme informatique qui apprend à partir d'exemples pour accomplir des tâches, comme répondre à des questions"),
+    ("un", "le", "programme", "une suite d'instructions qu'un ordinateur exécute"),
+    ("une", "l'", "application", "un programme qu'on utilise sur un téléphone ou un ordinateur"),
+    ("un", "le", "temps", "ce qui passe et se mesure en secondes, en heures et en jours ; c'est aussi la météo"),
+    ("une", "la", "météo", "l'état du ciel et de l'air : soleil, pluie, vent, température"),
+    ("une", "la", "saison", "une des quatre parties de l'année : printemps, été, automne et hiver"),
+    ("un", "l'", "anniversaire", "le jour où l'on fête la date de sa naissance"),
+    ("un", "le", "cadeau", "un objet qu'on offre à quelqu'un pour lui faire plaisir"),
+]
+assert len({d[2] for d in DEFS}) == len(DEFS)
+
+
+def le_nom(art, nom):
+    return f"{art}{nom}" if art == "l'" else f"{art} {nom}"
+
+
+# Matières et choses uniques : « C'est quoi le miel ? » plutôt que « un miel ».
+DEFINI = {"riz", "chocolat", "miel", "lait", "café", "thé", "eau", "air", "électricité", "argent", "musique",
+          "football", "internet", "intelligence artificielle", "temps", "météo", "soleil", "lune", "pluie", "neige"}
+
+for un, le, nom, d in DEFS:
+    if nom in DEFINI:
+        un = le
+    sujet = le_nom(un, nom)
+    verbe = "sont" if un == "des" else "est"
+    ans = f"{sujet.capitalize()} {verbe} {d}."
+    ans_le = f"{le_nom(le, nom).capitalize()} {verbe} {d}."
+    q_quoi = f"Qu'est-ce que {sujet} ?" if un == "des" else f"Qu'est-ce {que(sujet)} ?"
+    for q in rng.sample([f"C'est quoi {sujet} ?", q_quoi, f"{sujet.capitalize()}, c'est quoi ?",
+                         f"Explique-moi ce qu'est {sujet}." if un != "des" else f"Explique-moi ce que sont {sujet}.",
+                         f"Que veut dire le mot « {nom} » ?"], 3):
+        add(q, ans)
+    add(le_nom(le, nom).capitalize(), ans_le)  # un sujet seul : « Le citron »
+    if rng.random() < 0.5:
+        add(f"Parle-moi {('des ' + nom) if le == 'les' else ('de ' + le_nom(le, nom))}.", ans_le)
+
 # ------------------------------------------------------------------ conversation
 CONV = [
     (["Bonjour", "Bonjour !", "Salut", "Salut !", "Coucou", "Hello", "Bonsoir", "Salut Alice", "Bonjour Alice",
       "Coucou !", "Hey", "Bonjour à toi", "Salut, ça va ?", "slt", "bjr"],
-     ["Bonjour ! Je suis Alice. Comment puis-je t'aider ?", "Salut ! Que puis-je faire pour toi ?",
+     ["Bonjour ! Je suis Alice. Comment puis-je t'aider ?", "Salut ! Que puis-je faire pour toi aujourd'hui ?",
       "Bonjour ! Pose-moi une question, je ferai de mon mieux.", "Salut ! Comment puis-je t'aider aujourd'hui ?"]),
     (["Comment tu t'appelles ?", "Comment t'appelles-tu ?", "Tu t'appelles comment ?", "C'est quoi ton nom ?",
       "Quel est ton nom ?"],
@@ -887,16 +1053,17 @@ CONV = [
      ["Au revoir ! À bientôt.", "À bientôt !", "Bonne journée, et à bientôt !"]),
     (["Qui t'a créée ?", "Qui t'a créé ?", "Qui t'a créé", "Qui t'a fabriquée ?", "D'où viens-tu ?",
       "Qui t'a programmée ?", "Qui est ton créateur ?", "Tu viens d'où ?", "Qui t'a faite ?"],
-     ["Je suis basée sur SmolLM2, un petit modèle créé par Hugging Face, puis adaptée pour parler français.",
-      "Mon modèle de base, SmolLM2, a été créé par Hugging Face. On m'a ensuite entraînée à répondre en français."]),
-    (["Que sais-tu faire ?", "Tu sais faire quoi ?", "À quoi sers-tu ?", "Comment peux-tu m'aider ?"],
+     [f"Je suis basée sur {B['nom']}, un modèle créé par {B['auteur']}, puis adaptée pour parler français.",
+      f"Mon modèle de base, {B['nom']}, a été créé par {B['auteur']}. On m'a ensuite entraînée à répondre en français."]),
+    (["Que sais-tu faire ?", "Tu sais faire quoi ?", "À quoi sers-tu ?", "Comment peux-tu m'aider ?",
+      "Tu connais quoi ?", "Tu connais quoi", "Qu'est-ce que tu sais ?", "Tu peux faire quoi ?"],
      ["Je peux répondre à des questions simples, faire de petits calculs, traduire des mots et discuter un peu.",
       "Je réponds à des questions simples en français : culture générale, calcul, vocabulaire, traduction."]),
     (["Tu es quel modèle ?", "Quel modèle es-tu ?", "Tu es basée sur quoi ?", "Tu es quelle IA ?",
       "Tu utilises quel modèle ?"],
-     ["Je suis Alice, basée sur SmolLM2-135M, un petit modèle de 135 millions de paramètres créé par "
-      "Hugging Face, puis entraîné en français.",
-      "Je suis basée sur SmolLM2-135M, un tout petit modèle de langage. On m'a entraînée pour parler français."]),
+     [f"Je suis Alice, basée sur {B['complet']}, un petit modèle de {B['taille']} de paramètres créé par "
+      f"{B['auteur']}, puis entraîné en français.",
+      f"Je suis basée sur {B['complet']}, un petit modèle de langage. On m'a entraînée pour parler français."]),
     (["C'est quoi une IA ?", "Une IA c'est quoi ?", "Qu'est-ce qu'une intelligence artificielle ?", "Une IA est quoi ?"],
      ["Une IA, ou intelligence artificielle, est un programme informatique qui apprend à partir d'exemples "
       "pour accomplir des tâches, comme répondre à des questions.",

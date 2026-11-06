@@ -60,15 +60,28 @@ def main():
     ap.add_argument("--bs", type=int, default=16)
     ap.add_argument("--lr", type=float, default=5e-5)
     ap.add_argument("--max-steps", type=int, default=0, help="arrêt anticipé (test de vitesse)")
+    ap.add_argument("--lora", type=int, default=0,
+                    help="rang LoRA (0 = affinage complet). Avec LoRA, seuls de petits adaptateurs sont "
+                         "entraînés, puis fusionnés dans le modèle : même taille, connaissances préservées")
+    ap.add_argument("--limit", type=int, default=0, help="n'utilise que N exemples tirés au hasard")
+    ap.add_argument("--micro", type=int, default=0, help="taille des micro-lots (0 = lot entier)")
     a = ap.parse_args()
 
     torch.manual_seed(0)
     rng = random.Random(0)
     tok = AutoTokenizer.from_pretrained(a.base)
     model = AutoModelForCausalLM.from_pretrained(a.base, torch_dtype=torch.float32)
+    if a.lora:
+        from peft import LoraConfig, get_peft_model
+        model = get_peft_model(model, LoraConfig(
+            r=a.lora, lora_alpha=2 * a.lora, lora_dropout=0.05, task_type="CAUSAL_LM",
+            target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]))
+        model.print_trainable_parameters()
     model.train()
 
     rows = [json.loads(l) for l in open(a.data, encoding="utf-8")]
+    if a.limit:
+        rows = rng.sample(rows, min(a.limit, len(rows)))
     # 3 fois sur 4 avec la consigne d'Alice (comme le bot), sinon la consigne par défaut du modèle
     # (les exemples des étapes du mode pivot ont leur propre consigne)
     data = [encode(tok, r, r.get("system") or (SYS_DIRECT if rng.random() < 0.75 else None)) for r in rows]
@@ -77,15 +90,25 @@ def main():
     warmup = max(1, total // 20)
     print(f"{len(data)} exemples, {total} pas, ~{sum(len(x) for x, _ in data) / len(data):.0f} jetons/exemple", flush=True)
 
-    opt = torch.optim.AdamW(model.parameters(), lr=a.lr, weight_decay=0.0)
+    opt = torch.optim.AdamW([p for p in model.parameters() if p.requires_grad], lr=a.lr, weight_decay=0.0)
     sched = torch.optim.lr_scheduler.LambdaLR(
         opt, lambda s: min(1, (s + 1) / warmup) * 0.5 * (1 + math.cos(math.pi * min(1, s / total))))
 
     step, t0, run = 0, time.time(), []
     while step < total:
         for ids, lab, att in batches(data, a.bs, rng):
-            loss = model(input_ids=ids, attention_mask=att, labels=lab).loss
-            loss.backward()
+            # micro-lots : même résultat qu'un lot complet, avec beaucoup moins de mémoire
+            # (le vocabulaire de Qwen fait 152 000 mots : les scores de sortie sont lourds)
+            n_tok = (lab[:, 1:] != -100).sum().item()
+            loss = 0.0
+            for i in range(0, len(ids), a.micro or len(ids)):
+                sl = slice(i, i + (a.micro or len(ids)))
+                k = (lab[sl, 1:] != -100).sum().item()
+                if not k:
+                    continue
+                part = model(input_ids=ids[sl], attention_mask=att[sl], labels=lab[sl]).loss * (k / n_tok)
+                part.backward()
+                loss += part.detach()
             torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             opt.step(); sched.step(); opt.zero_grad()
             run.append(loss.item()); step += 1
@@ -97,6 +120,8 @@ def main():
             if step >= total:
                 break
 
+    if a.lora:
+        model = model.merge_and_unload()  # adaptateurs fusionnés : modèle standard, même taille
     model.save_pretrained(a.out, safe_serialization=True)
     tok.save_pretrained(a.out)
     print("modèle enregistré dans", a.out)
