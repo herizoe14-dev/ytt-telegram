@@ -276,7 +276,8 @@ SCRIPTS = [  # petites conversations écrites à la main
 TYPES = [(conv_prenom, 300), (conv_faits, 350), (conv_calcul, 250), (conv_probleme, 250), (conv_elliptique, 250),
          (conv_retenir, 200), (conv_resume, 150), (conv_identite, 120)]
 
-FORBIDDEN = {"mahery", "solène", "bastien", "nirina", "lalaina", "toamasina", "fianarantsoa", "hibou", "basket"}
+FORBIDDEN = {"mahery", "solène", "bastien", "nirina", "lalaina", "toamasina", "fianarantsoa", "hibou", "basket",
+             "ophélie", "dina", "brilvane", "14 plus 9"}
 
 
 def to_messages(turns):

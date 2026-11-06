@@ -132,3 +132,19 @@ CASES_NIVEAUX2 = [
     ("Tim a 10 billes. Il en gagne 6, en perd 4, puis en gagne encore 2. Combien de billes a-t-il ?", ["14"], "trois étapes"),
     ("Il y a 4 tables. Chaque table a 4 pieds. On enlève une table. Combien de pieds reste-t-il ?", ["12"], "deux étapes"),
 ]
+
+# Connaissances enseignées en v6 (train/connaissances_fr.py), demandées avec d'autres mots.
+CASES_CONNAISSANCES = [
+    ("En quelle année Madagascar a-t-elle obtenu son indépendance ?", ["1960"], "Madagascar"),
+    ("De quelle région du monde venaient les premiers Malgaches ?", ["borneo", "asie"], "Madagascar"),
+    ("Comment s'appelle la montagne la plus haute de Madagascar ?", ["maromokotro"], "Madagascar"),
+    ("Quel pays est le premier producteur de vanille au monde ?", ["madagascar"], "Madagascar"),
+    ("Comment dit-on merci en malgache ?", ["misaotra"], "Madagascar"),
+    ("À partir de quoi fabrique-t-on l'essence ?", ["petrole"], "sciences"),
+    ("Les antibiotiques soignent-ils les virus ?", ["non", "bacteries"], "sciences"),
+    ("Quelle maladie les moustiques transmettent-ils à Madagascar ?", ["paludisme"], "santé"),
+    ("En quelle année la Révolution française a-t-elle commencé ?", ["1789"], "histoire"),
+    ("Qui a été le premier président noir d'Afrique du Sud ?", ["mandela"], "histoire"),
+    ("Quelle est la plus haute montagne d'Afrique ?", ["kilimandjaro"], "géographie"),
+    ("Qu'est-ce qu'un nombre premier ?", ["diviseurs", "lui-meme"], "maths"),
+]

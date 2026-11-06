@@ -32,10 +32,11 @@ from chat import SYS_DIRECT  # noqa: E402
 
 def encode_messages(tok, msgs, max_len):
     """Jetons d'une conversation ; seules les réponses de l'assistant sont apprises."""
+    msgs = [{"role": m["role"], "content": m["content"], **({"train": m["train"]} if "train" in m else {})} for m in msgs]
     text = tok.apply_chat_template(msgs, tokenize=False)
     spans = []
     for i, m in enumerate(msgs):
-        if m["role"] == "assistant":
+        if m["role"] == "assistant" and m.get("train", True):  # "train": false = dans le contexte, non appris
             start = len(tok.apply_chat_template(msgs[:i], tokenize=False, add_generation_prompt=True))
             end = len(tok.apply_chat_template(msgs[:i + 1], tokenize=False))
             spans.append((start, end))
