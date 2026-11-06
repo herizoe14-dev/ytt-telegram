@@ -13,7 +13,7 @@ simple CPU.
 | Paramètres | 1,5 milliard |
 | Contexte | 4 096 jetons utilisés (jusqu'à 32 768 possibles) |
 | Vitesse | ~1 à 3 s par réponse sur 4 cœurs CPU, ~2 Go de mémoire |
-| SHA-256 | `1c1441a53962b799360fdb5dc84fe810ebb3c26deba685bc3deabcd29eeeb7cd` (fichier réassemblé) |
+| SHA-256 | `fa5a4d1f1fd5b9bd798a601c30317b4348131563025df358a40073cadf30babb` (fichier réassemblé) |
 
 GitHub refuse les fichiers de plus de 100 Mo : le modèle est rangé en 10 morceaux,
 que `chat.py` réassemble automatiquement au premier lancement en
@@ -76,8 +76,8 @@ est lancé.
 ## Entraînement en français
 
 Le dossier `train/` contient tout ce qu'il faut pour refaire Alice, sur un simple CPU
-(environ 6 h sur 4 cœurs, 10 Go de mémoire, en plusieurs sessions qui reprennent
-d'elles-mêmes) :
+(environ 6 h pour la première étape et 4 h 30 pour la seconde, sur 4 cœurs, 10 Go de
+mémoire, en plusieurs sessions qui reprennent d'elles-mêmes) :
 
 ```bash
 pip install -r train/requirements.txt
@@ -89,7 +89,12 @@ python train/train_fr.py --base Qwen/Qwen2.5-1.5B-Instruct --out build/alice \
 # (relancer la même commande après chaque arrêt : l'entraînement reprend où il en était)
 # GGUF de référence (métadonnées) : qwen2.5-1.5b-instruct-q4_0.gguf sur
 # https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF
-python train/to_gguf.py build/alice models/Alice-1.5B-fr-Q4_0.gguf \
+# 2e étape (v6) : toi/moi, corrections, honnêteté, connaissances, à partir de build/alice
+python train/make_v6_fr.py --oasst 2023-11-05_oasst2_ready.trees.jsonl.gz   # OpenAssistant/oasst2
+python train/train_fr.py --base build/alice --out build/alice-v6 \
+    --data train/v6_fr.jsonl train/oasst2_fr.jsonl train/dialogues_fr.jsonl:400 train/data_fr.jsonl:400 \
+    --lr 1e-4 --micro 2 --grad-ckpt --ckpt build/ckpt6 --stop-after-min 100
+python train/to_gguf.py build/alice-v6 models/Alice-1.5B-fr-Q4_0.gguf \
     --ref qwen2.5-1.5b-instruct-q4_0.gguf --tied --parts-mb 95 --name Alice \
     --system "Tu es Alice, une assistante qui répond toujours en français, de façon courte, exacte et logique."
 ```
@@ -100,6 +105,19 @@ python train/to_gguf.py build/alice models/Alice-1.5B-fr-Q4_0.gguf \
   la Grèce ? »), « retiens ce nombre », résumer la conversation, rester Alice
   (« Tu es Qwen, non ? » → « Non, je suis Alice »). La perte porte sur toutes les
   réponses d'Alice de la conversation.
+- **Toi, moi et honnêteté** (`make_v6_fr.py`, 1 172 conversations) : dire qu'on ne
+  connaît pas encore le prénom de l'utilisateur, le repérer dans une phrase longue
+  (« Non, toi tu es Alice et moi c'est Zoé »), « Et moi ? » ; accepter une correction
+  juste (la réponse fausse reste dans le contexte sans être apprise) mais maintenir
+  poliment une bonne réponse « corrigée » à tort ; demander une précision quand la
+  question est ambiguë ; ne pas inventer de sujets, d'e-mails ni de liens.
+- **Connaissances** (`connaissances_fr.py`, ~200 formulations de faits vérifiés) :
+  Madagascar (histoire, peuplement, rois, faune, culture, langue), histoire, géographie,
+  sciences (photosynthèse, essence et pétrole, électricité, climat), santé (paludisme,
+  vaccins), technologie, langue française, mathématiques ; et les limites d'Alice
+  (pas d'actualité, pas de données personnelles).
+- **Conversations humaines** : les 352 conversations françaises d'OpenAssistant oasst2
+  (licence Apache 2.0), meilleures réponses seulement.
 - **Questions-réponses** (`make_data_fr.py`), écrites à la main ou produites par des
   gabarits vérifiés (calculs exacts, accords en genre et en nombre) :
   - **raisonnement en étapes** (« D'abord, 7 moins 2 font 5. Ensuite… ») : problèmes en
@@ -124,15 +142,24 @@ Aucune question ni conversation d'évaluation n'est dans les données d'entraîn
   jamais vues ; `--set raisonnement` : 20 problèmes ; `--set niveaux` : 20 questions du
   plus simple au plus complexe ; `--set niveaux2` : 10 problèmes formulés autrement que
   les gabarits, écrits avant l'entraînement ;
-- `eval/eval_conv.py` : 16 conversations de 2 à 5 tours (prénoms, villes, nombres
-  jamais vus), où seule la dernière réponse est contrôlée.
+- `eval/eval_conv.py` : 24 conversations de 1 à 5 tours (prénoms, villes, nombres
+  jamais vus ; toi/moi ; corrections ; honnêteté), où seule la dernière réponse est
+  contrôlée ;
+- `eval/eval_fr.py --set connaissances` : 12 questions sur les faits enseignés,
+  formulées autrement.
 
 | Modèle | 30 q. | 32 jamais vues | Raisonnement (20) | Niveaux (20) | Généralisation (10) | Conversations (16) |
 |---|---|---|---|---|---|---|
 | SmolLM2-135M d'origine (meilleur réglage) | 10 | 6 | 3 | – | – | – |
 | Alice 135M (SmolLM2 affiné) | 13 | 14 | 13 | 12 | 3 | – |
 | Alice 0,5B (Qwen2.5-0.5B affiné) | 25 | 25 | **20** | **20** | 9 | 9 |
-| **Alice 1,5B (actuelle)** | **27** | **29** | 18 | **20** | **10** | **16** |
+| Alice 1,5B v5 | 27 | **29** | 18 | **20** | **10** | 16/16 (19/24) |
+| **Alice 1,5B v6 (actuelle)** | **29** | 28 | 19 | **20** | 9 | **21/24** |
+
+La colonne conversations compte 16 conversations de mémoire, puis 24 avec les 8
+conversations ajoutées en v6 (toi/moi, corrections, honnêteté, précision). Sur 12
+questions de connaissances reformulées (`--set connaissances`), la v6 en réussit 8,
+contre 6 pour la v5.
 
 Pour un nombre, la réponse est comptée juste si le dernier nombre écrit qui ne vient pas
 de la question est le bon (ou le dernier nombre tout court quand la bonne réponse
@@ -146,9 +173,13 @@ Exemple de conversation jamais vue :
 
 ### Limites
 
-- La culture générale a encore des trous (« La capitale de l'Allemagne est Berne »,
-  « la planète la plus proche du Soleil est la Lune »), et les jours de la semaine
-  (« lundi + 3 jours ») restent fragiles.
+- **Elle ne rivalise pas avec les grands modèles actuels** : ils ont 100 à 1 000 fois
+  plus de paramètres. Ses connaissances restent limitées et elle peut encore inventer
+  (un vainqueur imaginaire pour un concours qui n'existe pas), même si elle dit plus
+  souvent « je ne sais pas ».
+- Certains faits enseignés ne sont pas toujours retrouvés (« la France est le premier
+  producteur de vanille »), et les jours de la semaine (« lundi + 3 jours ») restent fragiles.
+- Elle ne demande pas toujours de précision quand la question est floue.
 - Les explications et les histoires sont courtes et parfois approximatives.
 - La mémoire du bot est en mémoire vive : elle s'efface quand le bot redémarre, et
   seuls les 12 derniers échanges sont gardés.
