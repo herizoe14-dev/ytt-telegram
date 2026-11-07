@@ -79,6 +79,17 @@ réponse n'apparaît pas dans les mots de la question (« la Ville rose » → T
 article ; certaines dates manquent dans cette version de Wikipédia ; un passage mal
 choisi peut parfois induire Alice en erreur.
 
+### Alice locale dans l'application Android (sans Termux)
+
+L'application Alice (dépôt `Alice-v3`) télécharge le modèle et la base à partir de
+[`dist/alice-local.json`](dist/alice-local.json) : le modèle vient des 10 morceaux de `models/`, la base
+de `dist/kb-index/` (index lisible en JavaScript pur, 495 Mo en morceaux de 95 Mo au plus), chaque
+fichier avec son empreinte SHA-256. Pour regénérer l'index après avoir reconstruit la base :
+
+```bash
+python knowledge/build_kb_index.py      # data/alice_kb.sqlite -> data/kb-index (format lu par l'application)
+```
+
 ## Tester dans Telegram
 
 1. Sur Telegram, écris à [@BotFather](https://t.me/BotFather), envoie `/newbot`

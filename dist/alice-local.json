@@ -1,0 +1,109 @@
+{
+ "version": 1,
+ "title": "Alice locale : modèle et base de connaissances",
+ "licence": "Modèle : Apache 2.0 (dérivé de Qwen2.5-1.5B-Instruct). Base : Wikipédia en français (CC BY-SA 4.0) + faits d'Alice.",
+ "files": [
+  {
+   "id": "model",
+   "name": "Alice-1.5B-fr-Q4_0.gguf",
+   "size": 874787872,
+   "sha256": "fa5a4d1f1fd5b9bd798a601c30317b4348131563025df358a40073cadf30babb",
+   "parts": [
+    "../models/Alice-1.5B-fr-Q4_0.gguf.part01",
+    "../models/Alice-1.5B-fr-Q4_0.gguf.part02",
+    "../models/Alice-1.5B-fr-Q4_0.gguf.part03",
+    "../models/Alice-1.5B-fr-Q4_0.gguf.part04",
+    "../models/Alice-1.5B-fr-Q4_0.gguf.part05",
+    "../models/Alice-1.5B-fr-Q4_0.gguf.part06",
+    "../models/Alice-1.5B-fr-Q4_0.gguf.part07",
+    "../models/Alice-1.5B-fr-Q4_0.gguf.part08",
+    "../models/Alice-1.5B-fr-Q4_0.gguf.part09",
+    "../models/Alice-1.5B-fr-Q4_0.gguf.part10"
+   ]
+  },
+  {
+   "id": "kb",
+   "dir": "kb-index",
+   "name": "kb.dblk",
+   "size": 24148,
+   "sha256": "d84ce920899446d33f0ba0289fb86b803bcdedf6bfb7a9624978ba99aee33b2f",
+   "parts": [
+    "kb-index/kb.dblk.part01"
+   ]
+  },
+  {
+   "id": "kb",
+   "dir": "kb-index",
+   "name": "kb.dict",
+   "size": 16271083,
+   "sha256": "1152cda8a78678e829532bb049a220915faf07e8bbc6fc5bfa6ae6d63009b5c6",
+   "parts": [
+    "kb-index/kb.dict.part01"
+   ]
+  },
+  {
+   "id": "kb",
+   "dir": "kb-index",
+   "name": "kb.docs",
+   "size": 395885013,
+   "sha256": "a905da05af81c1c14345b18a6aeb86ceb640437503e340919a389ae9f6792820",
+   "parts": [
+    "kb-index/kb.docs.part01",
+    "kb-index/kb.docs.part02",
+    "kb-index/kb.docs.part03",
+    "kb-index/kb.docs.part04",
+    "kb-index/kb.docs.part05"
+   ]
+  },
+  {
+   "id": "kb",
+   "dir": "kb-index",
+   "name": "kb.json",
+   "size": 190,
+   "sha256": "c02bc47a308a3c1ed300e973a39e9212a5776a5965c723eb5a67a229e50fb2b8",
+   "parts": [
+    "kb-index/kb.json.part01"
+   ]
+  },
+  {
+   "id": "kb",
+   "dir": "kb-index",
+   "name": "kb.lens",
+   "size": 1671158,
+   "sha256": "f6b35da4a91d297b9597ccb2e0c592a94c9206cd005fc7dd7d14307edd9d27bb",
+   "parts": [
+    "kb-index/kb.lens.part01"
+   ]
+  },
+  {
+   "id": "kb",
+   "dir": "kb-index",
+   "name": "kb.offs",
+   "size": 3342320,
+   "sha256": "7db072b5ae34334848af4efa8665e59d03178f39d7eca6b135629751a7f0e13f",
+   "parts": [
+    "kb-index/kb.offs.part01"
+   ]
+  },
+  {
+   "id": "kb",
+   "dir": "kb-index",
+   "name": "kb.post",
+   "size": 71141746,
+   "sha256": "7eec8fe24e3e7d1d8311007f7fdc59069921392708c309ac88ba43d54ca9a775",
+   "parts": [
+    "kb-index/kb.post.part01"
+   ]
+  },
+  {
+   "id": "kb",
+   "dir": "kb-index",
+   "name": "kb.titles",
+   "size": 6683888,
+   "sha256": "dc7c47f1e304a4d6e501c6eec9bf0d2556e4bee9047d82d0280632fdbe36711e",
+   "parts": [
+    "kb-index/kb.titles.part01"
+   ]
+  }
+ ]
+}
