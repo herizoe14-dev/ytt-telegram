@@ -56,7 +56,13 @@ def create(db):
 def add_facts(db):
     sys.path.insert(0, str(ROOT / "train"))
     from connaissances_fr import FAITS
+    import make_data_fr as D  # définitions écrites à la main (« Le citron est un fruit jaune… »)
     rows = [(qs[0].rstrip(" ?"), a, "Alice") for qs, a in FAITS]
+    for un, le, nom, d in D.DEFS:
+        art = le if nom in D.DEFINI else un
+        sujet = D.le_nom(art, nom)
+        verbe = "sont" if art in ("des", "les") else "est"
+        rows.append((nom.capitalize(), f"{sujet[0].upper() + sujet[1:]} {verbe} {d}.", "Alice"))
     db.executemany("INSERT INTO kb VALUES (?, ?, ?)", rows)
     return len(rows)
 
@@ -91,9 +97,15 @@ if __name__ == "__main__":
     ap.add_argument("--shards", type=int, default=N_SHARDS)
     ap.add_argument("--tmp", default=str(ROOT / "data" / "tmp"))
     ap.add_argument("--db", default=str(DB))
+    ap.add_argument("--facts-only", action="store_true", help="ne met à jour que les faits d'Alice")
     a = ap.parse_args()
     Path(a.db).parent.mkdir(parents=True, exist_ok=True)
     db = sqlite3.connect(a.db)
+    if a.facts_only:  # met à jour seulement les faits d'Alice dans une base existante
+        db.execute("DELETE FROM kb WHERE source = 'Alice'")
+        print(f"faits d'Alice : {add_facts(db)}")
+        db.commit()
+        sys.exit()
     create(db)
     print(f"faits d'Alice : {add_facts(db)}")
     add_wikipedia(db, a.shards, a.tmp)
