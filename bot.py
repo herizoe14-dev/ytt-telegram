@@ -17,7 +17,7 @@ Commandes :
     /nouveau        oublie la conversation et recommence
     /mode direct    réponses rapides (par défaut)
     /mode pivot     passe par l'anglais (~2 s), parfois meilleur en culture générale
-    /debug          en mode pivot, affiche/masque les étapes en anglais
+    /debug          affiche/masque les sources consultées (ou les étapes en mode pivot)
 """
 import asyncio
 import contextlib
@@ -58,8 +58,11 @@ def _generate(question, mode, debug, history):
     """Appelle le modèle ; renvoie (réponse, étapes de debug)."""
     buf = io.StringIO()
     with contextlib.redirect_stdout(buf):
-        answer = chat.ask(question, mode=mode, debug=debug, history=history if mode == "direct" else None)
+        answer = chat.ask(question, mode=mode, debug=debug and mode == "pivot",
+                          history=history if mode == "direct" else None)
     steps = "\n".join(l.strip() for l in buf.getvalue().splitlines() if l.strip())
+    if mode == "direct" and chat.LAST_PASSAGES:  # sources consultées dans la base de connaissances
+        steps = "Sources : " + " ; ".join(f"{t} ({s})" for t, _, s in chat.LAST_PASSAGES)
     return answer or "…", steps
 
 
@@ -69,11 +72,12 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "entraîné en français, qui tourne en local.\n\n"
         "Pose-moi une question simple, par exemple :\n"
         "« Léa a 9 bonbons. Elle en mange 4. Combien lui en reste-t-il ? »\n\n"
-        "Je me souviens de notre conversation : dis-moi ton prénom, je le retiendrai.\n\n"
+        "Je me souviens de notre conversation : dis-moi ton prénom, je le retiendrai.\n"
+        "Pour les questions de culture, je consulte ma base de connaissances (Wikipédia).\n\n"
         "/nouveau : recommencer une conversation (j'oublie tout)\n"
         "/mode direct : réponses rapides (par défaut)\n"
         "/mode pivot : je réfléchis en anglais, parfois mieux en culture générale\n"
-        "/debug : en mode pivot, voir mes étapes en anglais\n\n"
+        "/debug : voir les sources que j'ai consultées\n\n"
         "Je fais souvent des erreurs : je suis un modèle expérimental."
     )
 
@@ -113,7 +117,7 @@ async def on_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
     settings = await store.get(chat_id)
     mode = settings["mode"]
-    debug = settings["debug"] and mode == "pivot"
+    debug = settings["debug"]
     await context.bot.send_chat_action(update.effective_chat.id, ChatAction.TYPING)
 
     try:
@@ -124,10 +128,11 @@ async def on_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Désolée, une erreur est survenue. Réessaie.")
         return
 
-    log.info("[%s] %r -> %r", mode, question, answer)
+    log.info("[%s] %r -> %r%s", mode, question, answer,
+             f"  [sources : {', '.join(t for t, _, _ in chat.LAST_PASSAGES)}]" if chat.LAST_PASSAGES else "")
     HISTORY[chat_id] = (HISTORY.get(chat_id, []) + [(question, answer)])[-MAX_TURNS:]
     if debug and steps:
-        answer = f"{answer}\n\n— étapes —\n{steps}"
+        answer = f"{answer}\n\n— {'sources' if mode == 'direct' else 'étapes'} —\n{steps}"
     await update.message.reply_text(answer)
 
 
