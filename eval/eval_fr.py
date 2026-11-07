@@ -23,7 +23,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import chat  # noqa: E402
-from questions_fr import CASES, CASES_CONNAISSANCES, CASES_HELDOUT, CASES_NIVEAUX, CASES_NIVEAUX2, CASES_RAISONNEMENT  # noqa: E402
+from questions_fr import CASES, CASES_CONNAISSANCES, CASES_CULTURE, CASES_HELDOUT, CASES_NIVEAUX, CASES_NIVEAUX2, CASES_RAISONNEMENT  # noqa: E402
 
 FR_WORDS = set("le la les un une des est et de du que qui il elle je tu nous vous ils en au aux pour pas sont avec dans sur ce cette a y ne plus".split())
 EN_WORDS = set("the is are and of to in that it you for with this was be on as have not".split())
@@ -36,9 +36,18 @@ def baseline(question):
     return out["choices"][0]["message"]["content"].strip()
 
 
+def _sans_kb(q):
+    chat.USE_KB = False
+    try:
+        return chat.ask(q, "direct")
+    finally:
+        chat.USE_KB = True
+
+
 MODES = {
     "origine": baseline,  # réglages de départ, sans consigne
     "direct": lambda q: chat.ask(q, "direct"),
+    "sanskb": lambda q: _sans_kb(q),  # sans la base de connaissances
     "direct0": lambda q: chat.answer_direct(q, shots=False),  # sans exemples
     "direct5": lambda q: chat.answer_direct(q, shots=True),   # avec 5 exemples
     "pivot": lambda q: chat.ask(q, "pivot"),
@@ -77,14 +86,15 @@ def loops(text):
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--modes", default="direct,pivot")
-    ap.add_argument("--set", choices=["eval", "heldout", "raisonnement", "niveaux", "niveaux2", "connaissances"], default="eval",
+    ap.add_argument("--set", choices=["eval", "heldout", "raisonnement", "niveaux", "niveaux2", "connaissances", "culture"], default="eval",
                     help="eval : les 30 questions d'origine ; heldout : 32 questions jamais vues à "
                          "l'entraînement ; raisonnement : 20 problèmes en plusieurs étapes jamais vus")
     ap.add_argument("--verbose", action="store_true")
     args = ap.parse_args()
     cases = {"eval": CASES, "heldout": CASES_HELDOUT, "raisonnement": CASES_RAISONNEMENT,
              "niveaux": CASES_NIVEAUX,
-             "niveaux2": CASES_NIVEAUX2, "connaissances": CASES_CONNAISSANCES}[args.set]
+             "niveaux2": CASES_NIVEAUX2, "connaissances": CASES_CONNAISSANCES,
+             "culture": CASES_CULTURE}[args.set]
     n = len(cases)
     print(f"modèle : {chat.MODEL_PATH.name}, série : {args.set}")
     for name in args.modes.split(","):

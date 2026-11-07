@@ -148,3 +148,38 @@ CASES_CONNAISSANCES = [
     ("Quelle est la plus haute montagne d'Afrique ?", ["kilimandjaro"], "géographie"),
     ("Qu'est-ce qu'un nombre premier ?", ["diviseurs", "lui-meme"], "maths"),
 ]
+
+# Culture générale hors des données d'Alice : mesure l'apport de la base de connaissances
+# (recherche dans Wikipédia). Écrites avant de construire la base.
+CASES_CULTURE = [
+    ("Qui a écrit Germinal ?", ["zola"], "littérature"),
+    ("Qui a écrit Le Comte de Monte-Cristo ?", ["dumas"], "littérature"),
+    ("Qui a écrit L'Étranger ?", ["camus"], "littérature"),
+    ("En quelle année est mort Victor Hugo ?", ["1885"], "histoire"),
+    ("En quelle année a eu lieu la bataille de Waterloo ?", ["1815"], "histoire"),
+    ("Qui était le premier empereur romain ?", ["auguste", "octave"], "histoire"),
+    ("Qui a inventé le vaccin contre la rage ?", ["pasteur"], "sciences"),
+    ("Qui a découvert la pénicilline ?", ["fleming"], "sciences"),
+    ("Quel est le symbole chimique du fer ?", ["fe"], "sciences"),
+    ("Quelle est la formule chimique du sel de table ?", ["nacl"], "sciences"),
+    ("Quel organe filtre le sang pour fabriquer l'urine ?", ["rein", "reins"], "sciences"),
+    ("Quel est le plus grand satellite de Mars ?", ["phobos"], "sciences"),
+    ("Qui a peint Guernica ?", ["picasso"], "art"),
+    ("Qui a peint La Nuit étoilée ?", ["gogh"], "art"),
+    ("Qui a composé La Flûte enchantée ?", ["mozart"], "art"),
+    ("Combien de cordes a un violon ?", ["4", "quatre"], "art"),
+    ("Quelle est la capitale de l'Ouganda ?", ["kampala"], "géographie"),
+    ("Dans quel pays se trouve le Machu Picchu ?", ["perou"], "géographie"),
+    ("Dans quel pays se trouve Tombouctou ?", ["mali"], "géographie"),
+    ("Quelle est la plus grande île de la Méditerranée ?", ["sicile"], "géographie"),
+    ("Quel fleuve traverse Le Caire ?", ["nil"], "géographie"),
+    ("Quel océan borde la côte ouest de l'Afrique ?", ["atlantique"], "géographie"),
+    ("Quelle ville française est surnommée la Ville rose ?", ["toulouse"], "géographie"),
+    ("Quelle est la monnaie du Royaume-Uni ?", ["livre", "sterling"], "société"),
+    ("Qui a fondé Microsoft avec Paul Allen ?", ["gates"], "société"),
+    ("Combien de joueurs compte une équipe de rugby à XV sur le terrain ?", ["15", "quinze"], "sport"),
+    ("Dans quelle ville ont eu lieu les Jeux olympiques d'été de 2016 ?", ["rio"], "sport"),
+    ("Quel est le plus grand mammifère terrestre d'Afrique ?", ["elephant"], "nature"),
+    ("Quel arbre produit les glands ?", ["chene"], "nature"),
+    ("Quelle est la ville la plus peuplée d'Australie ?", ["sydney"], "géographie"),
+]

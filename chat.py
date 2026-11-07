@@ -92,12 +92,41 @@ SHOTS_DIRECT = [
 ]
 
 
+# Base de connaissances (Wikipédia + faits vérifiés), consultée avant de répondre si elle
+# existe (data/alice_kb.sqlite, construite par knowledge/build_kb.py). ALICE_KB=0 la désactive.
+USE_KB = os.environ.get("ALICE_KB", "") != "0"
+SYS_KB = ("Voici des extraits de ta base de connaissances. S'ils répondent à la question, "
+          "appuie-toi dessus et réponds en une ou deux phrases, en français, sans recopier les "
+          "numéros. S'ils ne répondent pas à la question, ignore-les et réponds normalement.\n")
+LAST_PASSAGES = []  # passages utilisés pour la dernière réponse (affichés par /debug)
+
+
+def _kb_passages(question, history):
+    global LAST_PASSAGES
+    LAST_PASSAGES = []
+    if not USE_KB:
+        return []
+    try:
+        import sys
+        sys.path.insert(0, str(Path(__file__).parent / "knowledge"))
+        import kb
+    except ImportError:
+        return []
+    LAST_PASSAGES = kb.search(question, history) if kb.available() else []
+    return LAST_PASSAGES
+
+
 def answer_direct(question, shots=None, history=None):
     """history : liste [(question, réponse), …] des échanges précédents de la conversation."""
     if shots is None:
         shots = not FINE_TUNED
     pairs = (SHOTS_DIRECT if shots else []) + list(history or [])
-    return _chat(_few_shot(SYS_DIRECT, pairs, question), max_tokens=256)
+    system = SYS_DIRECT
+    passages = _kb_passages(question, history)
+    if passages:
+        import kb
+        system = f"{SYS_DIRECT}\n\n{SYS_KB}{kb.context(passages)}"
+    return _chat(_few_shot(system, pairs, question), max_tokens=256)
 
 
 # ---------------------------------------------------------------- mode pivot

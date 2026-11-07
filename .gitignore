@@ -5,3 +5,6 @@ __pycache__/
 # modèle réassemblé à partir de ses morceaux
 models/*.gguf
 models/*.tmp
+
+# base de connaissances (reconstruite par knowledge/build_kb.py)
+data/
