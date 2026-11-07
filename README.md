@@ -37,6 +37,48 @@ python chat.py                                                     # conversatio
 ALICE_MODEL=chemin/vers/un/autre.gguf python chat.py "Bonjour"                # un autre modèle
 ```
 
+## Base de connaissances (Wikipédia)
+
+Pour les questions de culture générale, Alice consulte d'abord une base de
+connaissances locale, puis répond en s'appuyant sur les passages trouvés (méthode
+dite RAG : *retrieval-augmented generation*). La base contient :
+
+- l'introduction de **835 000 articles de Wikipédia en français** (jeu
+  [wikimedia/wikipedia](https://huggingface.co/datasets/wikimedia/wikipedia), version
+  20231101.fr, licence [CC BY-SA](https://creativecommons.org/licenses/by-sa/4.0/deed.fr)) ;
+- les faits et définitions vérifiés écrits pour Alice (`train/connaissances_fr.py`,
+  `train/make_data_fr.py`), consultés en priorité.
+
+Elle pèse 709 Mo et n'est pas dans le dépôt ; on la construit une fois :
+
+```bash
+pip install pyarrow huggingface_hub
+python knowledge/build_kb.py            # télécharge 4,6 Go, fichier par fichier ; ~30 min
+```
+
+`chat.py` et le bot l'utilisent automatiquement si `data/alice_kb.sqlite` existe
+(`ALICE_KB=0` pour la désactiver). La recherche (`knowledge/kb.py`) est une recherche
+plein texte SQLite FTS5 classée par BM25, en quelques dizaines de millisecondes, avec
+un reclassement qui favorise les titres et les expressions exactes. Elle n'est pas
+lancée pour les salutations, les questions sur l'utilisateur ou sur Alice, les calculs,
+les problèmes chiffrés et les exercices de langue ou de logique. Dans le bot, `/debug`
+affiche les sources consultées.
+
+| Alice 1,5B v6 | Sans la base | Avec la base |
+|---|---|---|
+| Culture générale hors des données d'Alice (`--set culture`, 30) | 18 | **23** |
+| Faits enseignés, reformulés (`--set connaissances`, 12) | 7 | **9** |
+| 30 questions / 32 jamais vues | 29 / 28 | 28 / 29 |
+| Raisonnement / niveaux / généralisation / conversations | 19 / 20 / 9 / 21 | 19 / 20 / 9 / 21 |
+
+Exemples corrigés par la base : « Qui a écrit Germinal ? » (« un poème de Victor Hugo »
+→ « un roman d'Émile Zola »), « Qui a composé La Flûte enchantée ? » (→ Mozart),
+« Comment le plastique est fabriqué ? » (→ à partir du pétrole). Limites : quand la
+réponse n'apparaît pas dans les mots de la question (« la Ville rose » → Toulouse,
+« l'arbre qui produit les glands » → le chêne), la recherche trouve rarement le bon
+article ; certaines dates manquent dans cette version de Wikipédia ; un passage mal
+choisi peut parfois induire Alice en erreur.
+
 ## Tester dans Telegram
 
 1. Sur Telegram, écris à [@BotFather](https://t.me/BotFather), envoie `/newbot`
@@ -174,7 +216,8 @@ Exemple de conversation jamais vue :
 ### Limites
 
 - **Elle ne rivalise pas avec les grands modèles actuels** : ils ont 100 à 1 000 fois
-  plus de paramètres. Ses connaissances restent limitées et elle peut encore inventer
+  plus de paramètres. La base de connaissances l'aide beaucoup sur les faits, mais pas
+  sur le raisonnement ou la rédaction. Ses connaissances restent limitées et elle peut encore inventer
   (un vainqueur imaginaire pour un concours qui n'existe pas), même si elle dit plus
   souvent « je ne sais pas ».
 - Certains faits enseignés ne sont pas toujours retrouvés (« la France est le premier
