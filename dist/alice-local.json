@@ -1,5 +1,5 @@
 {
- "version": 1,
+ "version": 2,
  "title": "Alice locale : modèle et base de connaissances",
  "licence": "Modèle : Apache 2.0 (dérivé de Qwen2.5-1.5B-Instruct). Base : Wikipédia en français (CC BY-SA 4.0) + faits d'Alice.",
  "files": [
@@ -20,6 +20,16 @@
     "../models/Alice-1.5B-fr-Q4_0.gguf.part09",
     "../models/Alice-1.5B-fr-Q4_0.gguf.part10"
    ]
+  },
+  {
+   "id": "lora",
+   "name": "Alice-v7-lora.gguf",
+   "size": 73886560,
+   "sha256": "8a41adc873f0d1e16c925a743c257f13958ece7a9f9b31f99767da5c372389c5",
+   "parts": [
+    "../models/Alice-v7-lora.gguf.part01"
+   ],
+   "note": "Alice v7 : adaptateur LoRA (f16) appliqué par llama-server (--lora) sur le modèle v6 ; écriture de textes, suites, sortie de boucle"
   },
   {
    "id": "kb",

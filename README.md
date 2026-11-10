@@ -224,6 +224,47 @@ Exemple de conversation jamais vue :
 > **Je vis à Fianarantsoa.** — D'accord, c'est noté !
 > **Quel est mon prénom et où j'habite ?** — Ton prénom est Lalaina et tu habites à Fianarantsoa.
 
+### v7 : écrire vraiment les textes demandés (adaptateur LoRA)
+
+Constaté dans l'application : à « Crée-moi un récit », la v6 répondait « Je peux vous aider avec un récit,
+jusqu'à environ 4000 tokens » sans jamais écrire, puis recopiait cette phrase à chaque message.
+
+- **Données** (`train/make_v7_fr.py`, 1 097 conversations) : 943 histoires de TinyStories en français
+  ([iproskurina/TinyStories-French](https://huggingface.co/datasets/iproskurina/TinyStories-French), traduction de
+  TinyStories, CDLA-Sharing-1.0) demandées de 40 façons (« Créé moi une récit », « sur un dragon »…) ; « vas-y »,
+  « continue / la suite » (histoire coupée en deux), « une autre », « plus court » ; **sortie de boucle** (réponses
+  répétées laissées dans le contexte sans être apprises, `"train": false`) ; poèmes et lettres écrits pour Alice ;
+  « comment s'appelle le personnage ? » ; réponses honnêtes sur soi (taille, mémoire, pas de souvenir de
+  l'entraînement, ni Claude ni ChatGPT). Plus 950 exemples des données précédentes, pour ne rien oublier.
+- **Entraînement** : à partir de la v6 elle-même (le GGUF Q4_0 déquantifié par transformers), LoRA rang 32,
+  lr 1e-4, 128 pas, ~4 h sur 4 cœurs :
+  ```bash
+  python train/make_v7_fr.py --stories train-00000-of-00001-73cdb762aecc853c.parquet
+  python train/train_fr.py --base build/alice-v6-deq --out build/alice-v7 \
+      --data train/v7_fr.jsonl train/v6_fr.jsonl:300 train/dialogues_fr.jsonl:250 train/data_fr.jsonl:250 \
+             train/oasst2_fr.jsonl:150 --lr 1e-4 --lora 32 --micro 2 --grad-ckpt --ckpt build/ckpt7 --stop-after-min 100
+  python convert_lora_to_gguf.py build/lora7 --base build/alice-v7 --outtype f16   # llama.cpp
+  ```
+- **Livrée comme adaptateur** (`models/Alice-v7-lora.gguf.part01`, 74 Mo, f16), appliqué par
+  `llama-server --lora` sur le modèle v6 inchangé. Pourquoi : la v6 est déjà en Q4_0 ; fusionner puis requantifier
+  en Q4_0 ramène presque tous les petits changements appris sur la grille d'origine (seuls 4 % des octets
+  changeaient, et les scores étaient identiques à la v6). L'adaptateur garde l'apprentissage intact, et le
+  téléphone ne télécharge que 74 Mo.
+
+Mêmes questions, même consigne, température 0 (`eval/eval_serveur.py`, llama-server) :
+
+| Test | v6 | **v7 (v6 + adaptateur)** |
+|---|---|---|
+| 30 questions | **29** | 28 |
+| 32 jamais vues | 29 | 29 |
+| Raisonnement (20) | 19 | **20** |
+| Conversations (24) | 21 | **23** |
+| Écriture : 20 demandes jamais vues, texte vraiment écrit | 13 | **17** |
+| Sortie de boucle (5) | 0 | **5** |
+
+Limite : les histoires ressemblent beaucoup à TinyStories (souvent « Lily » ou « Timmy », style enfantin) et
+suivent mal un sujet précis (« pirates », « policier ») ; certains poèmes se répètent encore.
+
 ### Limites
 
 - **Elle ne rivalise pas avec les grands modèles actuels** : ils ont 100 à 1 000 fois

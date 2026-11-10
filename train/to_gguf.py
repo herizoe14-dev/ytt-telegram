@@ -99,6 +99,13 @@ def write_f16(hf_dir, out, ref, drop_output=False):
 
 
 def quantize(src, dst, ftype="Q4_0", embd_type=None):
+    # Sans llama-cpp-python : outil llama-quantize de llama.cpp (chemin dans LLAMA_QUANTIZE)
+    if os.environ.get("LLAMA_QUANTIZE"):
+        import subprocess
+        cmd = [os.environ["LLAMA_QUANTIZE"]] + (["--token-embedding-type", embd_type.lower()] if embd_type else [])
+        if subprocess.run(cmd + [src, dst, ftype, str(os.cpu_count() or 4)]).returncode != 0:
+            raise SystemExit("échec de la quantification")
+        return
     import llama_cpp
     p = llama_cpp.llama_model_quantize_default_params()
     p.ftype = getattr(llama_cpp, f"LLAMA_FTYPE_MOSTLY_{ftype}")
